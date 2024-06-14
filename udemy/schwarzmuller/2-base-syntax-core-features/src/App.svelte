@@ -1,6 +1,11 @@
 <script>
-	let name = 'sam';
+	import ContactCard from "./ContactCard.svelte";
+
+	let name = 'Sam Jansen';
 	let age = 35;
+	let jobTitle = "Lead Data Analyst";
+	let jobDescription = "Will viz for food";
+	let image;
 
 	// $: prompts Svelte to create a reactive variable
 	// Whenever expression on left changes, the reactive
@@ -9,10 +14,6 @@
 
 	function increaseAge() {
 		age++;
-	}
-
-	function changeName() {
-		name = 'samuel'
 	}
 </script>
 
@@ -30,3 +31,14 @@
 <button on:click={increaseAge}>Increase Age</button>
 <!-- bind: sets up two-way binding -->
 <input type="text" bind:value={name}>
+<input type="text" placeholder="Job Title" bind:value={jobTitle}>
+<input type="text" placeholder="Image URL" bind:value={image}>
+<textarea rows=3 placeholder="Job Description" bind:value={jobDescription}></textarea>
+
+<!-- Link prop names to variables to set them -->
+<ContactCard
+	userName={name} 
+	{jobTitle} 
+	{jobDescription} 
+	{image}
+/>
