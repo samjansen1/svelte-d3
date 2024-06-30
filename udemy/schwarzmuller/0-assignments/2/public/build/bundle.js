@@ -38,12 +38,6 @@ var app = (function () {
             node.parentNode.removeChild(node);
         }
     }
-    function destroy_each(iterations, detaching) {
-        for (let i = 0; i < iterations.length; i += 1) {
-            if (iterations[i])
-                iterations[i].d(detaching);
-        }
-    }
     function element(name) {
         return document.createElement(name);
     }
@@ -198,6 +192,99 @@ var app = (function () {
         if (block && block.i) {
             outroing.delete(block);
             block.i(local);
+        }
+    }
+
+    function destroy_block(block, lookup) {
+        block.d(1);
+        lookup.delete(block.key);
+    }
+    function update_keyed_each(old_blocks, dirty, get_key, dynamic, ctx, list, lookup, node, destroy, create_each_block, next, get_context) {
+        let o = old_blocks.length;
+        let n = list.length;
+        let i = o;
+        const old_indexes = {};
+        while (i--)
+            old_indexes[old_blocks[i].key] = i;
+        const new_blocks = [];
+        const new_lookup = new Map();
+        const deltas = new Map();
+        const updates = [];
+        i = n;
+        while (i--) {
+            const child_ctx = get_context(ctx, list, i);
+            const key = get_key(child_ctx);
+            let block = lookup.get(key);
+            if (!block) {
+                block = create_each_block(key, child_ctx);
+                block.c();
+            }
+            else if (dynamic) {
+                // defer updates until all the DOM shuffling is done
+                updates.push(() => block.p(child_ctx, dirty));
+            }
+            new_lookup.set(key, new_blocks[i] = block);
+            if (key in old_indexes)
+                deltas.set(key, Math.abs(i - old_indexes[key]));
+        }
+        const will_move = new Set();
+        const did_move = new Set();
+        function insert(block) {
+            transition_in(block, 1);
+            block.m(node, next);
+            lookup.set(block.key, block);
+            next = block.first;
+            n--;
+        }
+        while (o && n) {
+            const new_block = new_blocks[n - 1];
+            const old_block = old_blocks[o - 1];
+            const new_key = new_block.key;
+            const old_key = old_block.key;
+            if (new_block === old_block) {
+                // do nothing
+                next = new_block.first;
+                o--;
+                n--;
+            }
+            else if (!new_lookup.has(old_key)) {
+                // remove old block
+                destroy(old_block, lookup);
+                o--;
+            }
+            else if (!lookup.has(new_key) || will_move.has(new_key)) {
+                insert(new_block);
+            }
+            else if (did_move.has(old_key)) {
+                o--;
+            }
+            else if (deltas.get(new_key) > deltas.get(old_key)) {
+                did_move.add(new_key);
+                insert(new_block);
+            }
+            else {
+                will_move.add(old_key);
+                o--;
+            }
+        }
+        while (o--) {
+            const old_block = old_blocks[o];
+            if (!new_lookup.has(old_block.key))
+                destroy(old_block, lookup);
+        }
+        while (n)
+            insert(new_blocks[n - 1]);
+        run_all(updates);
+        return new_blocks;
+    }
+    function validate_each_keys(ctx, list, get_context, get_key) {
+        const keys = new Set();
+        for (let i = 0; i < list.length; i++) {
+            const key = get_key(get_context(ctx, list, i));
+            if (keys.has(key)) {
+                throw new Error('Cannot have duplicate keys in a keyed each');
+            }
+            keys.add(key);
         }
     }
     function mount_component(component, target, anchor, customElement) {
@@ -549,8 +636,8 @@ var app = (function () {
     	return block;
     }
 
-    // (60:1) {#each passwords as pw}
-    function create_each_block(ctx) {
+    // (60:1) {#each passwords as pw (pw.id)}
+    function create_each_block(key_1, ctx) {
     	let li;
     	let t_value = /*pw*/ ctx[7].password + "";
     	let t;
@@ -562,10 +649,13 @@ var app = (function () {
     	}
 
     	const block = {
+    		key: key_1,
+    		first: null,
     		c: function create() {
     			li = element("li");
     			t = text(t_value);
-    			add_location(li, file, 60, 2, 1464);
+    			add_location(li, file, 60, 2, 1472);
+    			this.first = li;
     		},
     		m: function mount(target, anchor) {
     			insert_dev(target, li, anchor);
@@ -591,7 +681,7 @@ var app = (function () {
     		block,
     		id: create_each_block.name,
     		type: "each",
-    		source: "(60:1) {#each passwords as pw}",
+    		source: "(60:1) {#each passwords as pw (pw.id)}",
     		ctx
     	});
 
@@ -622,6 +712,8 @@ var app = (function () {
     	let t18;
     	let t19;
     	let ul;
+    	let each_blocks = [];
+    	let each_1_lookup = new Map();
     	let mounted;
     	let dispose;
 
@@ -636,10 +728,13 @@ var app = (function () {
     	let if_block = current_block_type(ctx);
     	let each_value = /*passwords*/ ctx[2];
     	validate_each_argument(each_value);
-    	let each_blocks = [];
+    	const get_key = ctx => /*pw*/ ctx[7].id;
+    	validate_each_keys(ctx, each_value, get_each_context, get_key);
 
     	for (let i = 0; i < each_value.length; i += 1) {
-    		each_blocks[i] = create_each_block(get_each_context(ctx, each_value, i));
+    		let child_ctx = get_each_context(ctx, each_value, i);
+    		let key = get_key(child_ctx);
+    		each_1_lookup.set(key, each_blocks[i] = create_each_block(key, child_ctx));
     	}
 
     	const block = {
@@ -761,25 +856,8 @@ var app = (function () {
     			if (dirty & /*removePassword, passwords*/ 20) {
     				each_value = /*passwords*/ ctx[2];
     				validate_each_argument(each_value);
-    				let i;
-
-    				for (i = 0; i < each_value.length; i += 1) {
-    					const child_ctx = get_each_context(ctx, each_value, i);
-
-    					if (each_blocks[i]) {
-    						each_blocks[i].p(child_ctx, dirty);
-    					} else {
-    						each_blocks[i] = create_each_block(child_ctx);
-    						each_blocks[i].c();
-    						each_blocks[i].m(ul, null);
-    					}
-    				}
-
-    				for (; i < each_blocks.length; i += 1) {
-    					each_blocks[i].d(1);
-    				}
-
-    				each_blocks.length = each_value.length;
+    				validate_each_keys(ctx, each_value, get_each_context, get_key);
+    				each_blocks = update_keyed_each(each_blocks, dirty, get_key, 1, ctx, each_value, each_1_lookup, ul, destroy_block, create_each_block, null, get_each_context);
     			}
     		},
     		i: noop,
@@ -798,7 +876,11 @@ var app = (function () {
     			if_block.d(detaching);
     			if (detaching) detach_dev(t19);
     			if (detaching) detach_dev(ul);
-    			destroy_each(each_blocks, detaching);
+
+    			for (let i = 0; i < each_blocks.length; i += 1) {
+    				each_blocks[i].d();
+    			}
+
     			mounted = false;
     			run_all(dispose);
     		}

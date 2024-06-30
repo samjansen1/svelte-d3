@@ -57,7 +57,7 @@
 {/if}
 
 <ul>
-	{#each passwords as pw}
+	{#each passwords as pw (pw.id)}
 		<li on:click={() => removePassword(pw)}>{pw.password}</li>
 	{/each}
 </ul>
