@@ -38,6 +38,12 @@ var app = (function () {
             node.parentNode.removeChild(node);
         }
     }
+    function destroy_each(iterations, detaching) {
+        for (let i = 0; i < iterations.length; i += 1) {
+            if (iterations[i])
+                iterations[i].d(detaching);
+        }
+    }
     function element(name) {
         return document.createElement(name);
     }
@@ -47,8 +53,29 @@ var app = (function () {
     function space() {
         return text(' ');
     }
+    function listen(node, event, handler, options) {
+        node.addEventListener(event, handler, options);
+        return () => node.removeEventListener(event, handler, options);
+    }
+    function attr(node, attribute, value) {
+        if (value == null)
+            node.removeAttribute(attribute);
+        else if (node.getAttribute(attribute) !== value)
+            node.setAttribute(attribute, value);
+    }
     function children(element) {
         return Array.from(element.childNodes);
+    }
+    function set_input_value(input, value) {
+        input.value = value == null ? '' : value;
+    }
+    function set_style(node, key, value, important) {
+        if (value == null) {
+            node.style.removeProperty(key);
+        }
+        else {
+            node.style.setProperty(key, value, important ? 'important' : '');
+        }
     }
     function custom_event(type, detail, { bubbles = false, cancelable = false } = {}) {
         const e = document.createEvent('CustomEvent');
@@ -321,6 +348,44 @@ var app = (function () {
         dispatch_dev('SvelteDOMRemove', { node });
         detach(node);
     }
+    function listen_dev(node, event, handler, options, has_prevent_default, has_stop_propagation, has_stop_immediate_propagation) {
+        const modifiers = options === true ? ['capture'] : options ? Array.from(Object.keys(options)) : [];
+        if (has_prevent_default)
+            modifiers.push('preventDefault');
+        if (has_stop_propagation)
+            modifiers.push('stopPropagation');
+        if (has_stop_immediate_propagation)
+            modifiers.push('stopImmediatePropagation');
+        dispatch_dev('SvelteDOMAddEventListener', { node, event, handler, modifiers });
+        const dispose = listen(node, event, handler, options);
+        return () => {
+            dispatch_dev('SvelteDOMRemoveEventListener', { node, event, handler, modifiers });
+            dispose();
+        };
+    }
+    function attr_dev(node, attribute, value) {
+        attr(node, attribute, value);
+        if (value == null)
+            dispatch_dev('SvelteDOMRemoveAttribute', { node, attribute });
+        else
+            dispatch_dev('SvelteDOMSetAttribute', { node, attribute, value });
+    }
+    function set_data_dev(text, data) {
+        data = '' + data;
+        if (text.data === data)
+            return;
+        dispatch_dev('SvelteDOMSetData', { node: text, data });
+        text.data = data;
+    }
+    function validate_each_argument(arg) {
+        if (typeof arg !== 'string' && !(arg && typeof arg === 'object' && 'length' in arg)) {
+            let msg = '{#each} only iterates over array-like objects.';
+            if (typeof Symbol === 'function' && arg && Symbol.iterator in arg) {
+                msg += ' You can use a spread to convert this iterable into an array.';
+            }
+            throw new Error(msg);
+        }
+    }
     function validate_slots(name, slot, keys) {
         for (const slot_key of Object.keys(slot)) {
             if (!~keys.indexOf(slot_key)) {
@@ -352,6 +417,187 @@ var app = (function () {
 
     const file = "src/App.svelte";
 
+    function get_each_context(ctx, list, i) {
+    	const child_ctx = ctx.slice();
+    	child_ctx[7] = list[i];
+    	return child_ctx;
+    }
+
+    // (55:0) {:else}
+    function create_else_block(ctx) {
+    	let p;
+    	let t;
+
+    	const block = {
+    		c: function create() {
+    			p = element("p");
+    			t = text(/*password*/ ctx[0]);
+    			add_location(p, file, 55, 1, 1407);
+    		},
+    		m: function mount(target, anchor) {
+    			insert_dev(target, p, anchor);
+    			append_dev(p, t);
+    		},
+    		p: function update(ctx, dirty) {
+    			if (dirty & /*password*/ 1) set_data_dev(t, /*password*/ ctx[0]);
+    		},
+    		d: function destroy(detaching) {
+    			if (detaching) detach_dev(p);
+    		}
+    	};
+
+    	dispatch_dev("SvelteRegisterBlock", {
+    		block,
+    		id: create_else_block.name,
+    		type: "else",
+    		source: "(55:0) {:else}",
+    		ctx
+    	});
+
+    	return block;
+    }
+
+    // (53:38) 
+    function create_if_block_2(ctx) {
+    	let p;
+
+    	const block = {
+    		c: function create() {
+    			p = element("p");
+    			p.textContent = "Too long";
+    			set_style(p, "color", "red");
+    			add_location(p, file, 53, 1, 1364);
+    		},
+    		m: function mount(target, anchor) {
+    			insert_dev(target, p, anchor);
+    		},
+    		p: noop,
+    		d: function destroy(detaching) {
+    			if (detaching) detach_dev(p);
+    		}
+    	};
+
+    	dispatch_dev("SvelteRegisterBlock", {
+    		block,
+    		id: create_if_block_2.name,
+    		type: "if",
+    		source: "(53:38) ",
+    		ctx
+    	});
+
+    	return block;
+    }
+
+    // (51:39) 
+    function create_if_block_1(ctx) {
+    	let p;
+
+    	const block = {
+    		c: function create() {
+    			p = element("p");
+    			p.textContent = "Too short";
+    			set_style(p, "color", "red");
+    			add_location(p, file, 51, 1, 1289);
+    		},
+    		m: function mount(target, anchor) {
+    			insert_dev(target, p, anchor);
+    		},
+    		p: noop,
+    		d: function destroy(detaching) {
+    			if (detaching) detach_dev(p);
+    		}
+    	};
+
+    	dispatch_dev("SvelteRegisterBlock", {
+    		block,
+    		id: create_if_block_1.name,
+    		type: "if",
+    		source: "(51:39) ",
+    		ctx
+    	});
+
+    	return block;
+    }
+
+    // (49:0) {#if password.length === 0}
+    function create_if_block(ctx) {
+    	let p;
+
+    	const block = {
+    		c: function create() {
+    			p = element("p");
+    			p.textContent = "Enter a password";
+    			add_location(p, file, 49, 1, 1224);
+    		},
+    		m: function mount(target, anchor) {
+    			insert_dev(target, p, anchor);
+    		},
+    		p: noop,
+    		d: function destroy(detaching) {
+    			if (detaching) detach_dev(p);
+    		}
+    	};
+
+    	dispatch_dev("SvelteRegisterBlock", {
+    		block,
+    		id: create_if_block.name,
+    		type: "if",
+    		source: "(49:0) {#if password.length === 0}",
+    		ctx
+    	});
+
+    	return block;
+    }
+
+    // (60:1) {#each passwords as pw}
+    function create_each_block(ctx) {
+    	let li;
+    	let t_value = /*pw*/ ctx[7].password + "";
+    	let t;
+    	let mounted;
+    	let dispose;
+
+    	function click_handler() {
+    		return /*click_handler*/ ctx[6](/*pw*/ ctx[7]);
+    	}
+
+    	const block = {
+    		c: function create() {
+    			li = element("li");
+    			t = text(t_value);
+    			add_location(li, file, 60, 2, 1464);
+    		},
+    		m: function mount(target, anchor) {
+    			insert_dev(target, li, anchor);
+    			append_dev(li, t);
+
+    			if (!mounted) {
+    				dispose = listen_dev(li, "click", click_handler, false, false, false, false);
+    				mounted = true;
+    			}
+    		},
+    		p: function update(new_ctx, dirty) {
+    			ctx = new_ctx;
+    			if (dirty & /*passwords*/ 4 && t_value !== (t_value = /*pw*/ ctx[7].password + "")) set_data_dev(t, t_value);
+    		},
+    		d: function destroy(detaching) {
+    			if (detaching) detach_dev(li);
+    			mounted = false;
+    			dispose();
+    		}
+    	};
+
+    	dispatch_dev("SvelteRegisterBlock", {
+    		block,
+    		id: create_each_block.name,
+    		type: "each",
+    		source: "(60:1) {#each passwords as pw}",
+    		ctx
+    	});
+
+    	return block;
+    }
+
     function create_fragment(ctx) {
     	let h1;
     	let t1;
@@ -369,6 +615,32 @@ var app = (function () {
     	let li4;
     	let t13;
     	let li5;
+    	let t15;
+    	let input;
+    	let t16;
+    	let button;
+    	let t18;
+    	let t19;
+    	let ul;
+    	let mounted;
+    	let dispose;
+
+    	function select_block_type(ctx, dirty) {
+    		if (/*password*/ ctx[0].length === 0) return create_if_block;
+    		if (/*passwordValidity*/ ctx[1] === 'short') return create_if_block_1;
+    		if (/*passwordValidity*/ ctx[1] === 'long') return create_if_block_2;
+    		return create_else_block;
+    	}
+
+    	let current_block_type = select_block_type(ctx);
+    	let if_block = current_block_type(ctx);
+    	let each_value = /*passwords*/ ctx[2];
+    	validate_each_argument(each_value);
+    	let each_blocks = [];
+
+    	for (let i = 0; i < each_value.length; i += 1) {
+    		each_blocks[i] = create_each_block(get_each_context(ctx, each_value, i));
+    	}
 
     	const block = {
     		c: function create() {
@@ -396,15 +668,33 @@ var app = (function () {
     			t13 = space();
     			li5 = element("li");
     			li5.textContent = "Bonus: If a password is clicked, remove it from the list.";
-    			add_location(h1, file, 0, 0, 0);
-    			add_location(p, file, 2, 0, 21);
-    			add_location(li0, file, 5, 1, 54);
-    			add_location(li1, file, 6, 1, 130);
-    			add_location(li2, file, 7, 1, 243);
-    			add_location(li3, file, 8, 1, 326);
-    			add_location(li4, file, 9, 1, 397);
-    			add_location(li5, file, 10, 1, 475);
-    			add_location(ol, file, 4, 0, 48);
+    			t15 = space();
+    			input = element("input");
+    			t16 = space();
+    			button = element("button");
+    			button.textContent = "Add password";
+    			t18 = space();
+    			if_block.c();
+    			t19 = space();
+    			ul = element("ul");
+
+    			for (let i = 0; i < each_blocks.length; i += 1) {
+    				each_blocks[i].c();
+    			}
+
+    			add_location(h1, file, 32, 0, 546);
+    			add_location(p, file, 34, 0, 567);
+    			add_location(li0, file, 37, 1, 600);
+    			add_location(li1, file, 38, 1, 676);
+    			add_location(li2, file, 39, 1, 789);
+    			add_location(li3, file, 40, 1, 872);
+    			add_location(li4, file, 41, 1, 943);
+    			add_location(li5, file, 42, 1, 1021);
+    			add_location(ol, file, 36, 0, 594);
+    			attr_dev(input, "type", "password");
+    			add_location(input, file, 45, 0, 1095);
+    			add_location(button, file, 46, 0, 1141);
+    			add_location(ul, file, 58, 0, 1432);
     		},
     		l: function claim(nodes) {
     			throw new Error("options.hydrate only works if the component was compiled with the `hydratable: true` option");
@@ -426,8 +716,72 @@ var app = (function () {
     			append_dev(ol, li4);
     			append_dev(ol, t13);
     			append_dev(ol, li5);
+    			insert_dev(target, t15, anchor);
+    			insert_dev(target, input, anchor);
+    			set_input_value(input, /*password*/ ctx[0]);
+    			insert_dev(target, t16, anchor);
+    			insert_dev(target, button, anchor);
+    			insert_dev(target, t18, anchor);
+    			if_block.m(target, anchor);
+    			insert_dev(target, t19, anchor);
+    			insert_dev(target, ul, anchor);
+
+    			for (let i = 0; i < each_blocks.length; i += 1) {
+    				if (each_blocks[i]) {
+    					each_blocks[i].m(ul, null);
+    				}
+    			}
+
+    			if (!mounted) {
+    				dispose = [
+    					listen_dev(input, "input", /*input_input_handler*/ ctx[5]),
+    					listen_dev(button, "click", /*addPassword*/ ctx[3], false, false, false, false)
+    				];
+
+    				mounted = true;
+    			}
     		},
-    		p: noop,
+    		p: function update(ctx, [dirty]) {
+    			if (dirty & /*password*/ 1 && input.value !== /*password*/ ctx[0]) {
+    				set_input_value(input, /*password*/ ctx[0]);
+    			}
+
+    			if (current_block_type === (current_block_type = select_block_type(ctx)) && if_block) {
+    				if_block.p(ctx, dirty);
+    			} else {
+    				if_block.d(1);
+    				if_block = current_block_type(ctx);
+
+    				if (if_block) {
+    					if_block.c();
+    					if_block.m(t19.parentNode, t19);
+    				}
+    			}
+
+    			if (dirty & /*removePassword, passwords*/ 20) {
+    				each_value = /*passwords*/ ctx[2];
+    				validate_each_argument(each_value);
+    				let i;
+
+    				for (i = 0; i < each_value.length; i += 1) {
+    					const child_ctx = get_each_context(ctx, each_value, i);
+
+    					if (each_blocks[i]) {
+    						each_blocks[i].p(child_ctx, dirty);
+    					} else {
+    						each_blocks[i] = create_each_block(child_ctx);
+    						each_blocks[i].c();
+    						each_blocks[i].m(ul, null);
+    					}
+    				}
+
+    				for (; i < each_blocks.length; i += 1) {
+    					each_blocks[i].d(1);
+    				}
+
+    				each_blocks.length = each_value.length;
+    			}
+    		},
     		i: noop,
     		o: noop,
     		d: function destroy(detaching) {
@@ -436,6 +790,17 @@ var app = (function () {
     			if (detaching) detach_dev(p);
     			if (detaching) detach_dev(t3);
     			if (detaching) detach_dev(ol);
+    			if (detaching) detach_dev(t15);
+    			if (detaching) detach_dev(input);
+    			if (detaching) detach_dev(t16);
+    			if (detaching) detach_dev(button);
+    			if (detaching) detach_dev(t18);
+    			if_block.d(detaching);
+    			if (detaching) detach_dev(t19);
+    			if (detaching) detach_dev(ul);
+    			destroy_each(each_blocks, detaching);
+    			mounted = false;
+    			run_all(dispose);
     		}
     	};
 
@@ -450,16 +815,75 @@ var app = (function () {
     	return block;
     }
 
-    function instance($$self, $$props) {
+    function instance($$self, $$props, $$invalidate) {
     	let { $$slots: slots = {}, $$scope } = $$props;
     	validate_slots('App', slots, []);
+    	let password = '';
+    	let passwordValidity = 'short';
+    	let passwords = [];
+
+    	function addPassword() {
+    		if (passwordValidity === 'valid') {
+    			$$invalidate(2, passwords = [...passwords, { id: Math.random(), password }]);
+    		}
+    	}
+
+    	function removePassword(password) {
+    		$$invalidate(2, passwords = passwords.filter(item => item !== password));
+    	}
+
     	const writable_props = [];
 
     	Object.keys($$props).forEach(key => {
     		if (!~writable_props.indexOf(key) && key.slice(0, 2) !== '$$' && key !== 'slot') console.warn(`<App> was created with unknown prop '${key}'`);
     	});
 
-    	return [];
+    	function input_input_handler() {
+    		password = this.value;
+    		$$invalidate(0, password);
+    	}
+
+    	const click_handler = pw => removePassword(pw);
+
+    	$$self.$capture_state = () => ({
+    		password,
+    		passwordValidity,
+    		passwords,
+    		addPassword,
+    		removePassword
+    	});
+
+    	$$self.$inject_state = $$props => {
+    		if ('password' in $$props) $$invalidate(0, password = $$props.password);
+    		if ('passwordValidity' in $$props) $$invalidate(1, passwordValidity = $$props.passwordValidity);
+    		if ('passwords' in $$props) $$invalidate(2, passwords = $$props.passwords);
+    	};
+
+    	if ($$props && "$$inject" in $$props) {
+    		$$self.$inject_state($$props.$$inject);
+    	}
+
+    	$$self.$$.update = () => {
+    		if ($$self.$$.dirty & /*password*/ 1) {
+    			if (password.trim().length < 5) {
+    				$$invalidate(1, passwordValidity = 'short');
+    			} else if (password.trim().length > 10) {
+    				$$invalidate(1, passwordValidity = 'long');
+    			} else {
+    				$$invalidate(1, passwordValidity = 'valid');
+    			}
+    		}
+    	};
+
+    	return [
+    		password,
+    		passwordValidity,
+    		passwords,
+    		addPassword,
+    		removePassword,
+    		input_input_handler,
+    		click_handler
+    	];
     }
 
     class App extends SvelteComponentDev {
