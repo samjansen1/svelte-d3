@@ -20,7 +20,6 @@
   }
 
   header,
-  .content,
   footer {
     padding: 1rem;
   }
@@ -62,6 +61,11 @@
 
   div {
     text-align: right;
+  }
+
+  .content {
+    padding: 1rem;
+    height: 4rem;
   }
 </style>
 
