@@ -23,6 +23,10 @@
             imageUrl: imageUrl
         })
     }
+
+    function cancel() {
+        dispatch('cancel')
+    }
 </script>
 
 <style>
@@ -32,7 +36,7 @@
 </style>
 
 <Modal title='Edit Meetup Data' on:cancel>
-    <form on:submit|preventDefault={submitForm}>
+    <form>
         <TextInput
             id="title"
             label="Title"
@@ -73,4 +77,8 @@
             on:input={event => email = event.target.value}
         />
     </form>
+    <div slot='footer'>
+        <Button type='button' mode='outline'on:click={cancel}>Cancel</Button>
+        <Button type='button' on:click={submitForm}>Save</Button>
+    </div>
 </Modal>
