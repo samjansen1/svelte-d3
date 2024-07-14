@@ -86,5 +86,6 @@
 {#if href}
     <a {href}>{caption}</a>
 {:else}
-    <button class={mode} {type}>{caption}</button>
+    <!-- on:click without any parameter forwards events to parent component -->
+    <button class={mode} {type} on:click>{caption}</button>
 {/if}

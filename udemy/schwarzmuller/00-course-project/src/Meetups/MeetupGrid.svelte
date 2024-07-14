@@ -29,6 +29,8 @@
             imageUrl={m.imageUrl}
             address={m.address}
             email={m.contactEmail}
+            isFav={m.isFavourite}
+            on:togglefavourite
         />
     {/each}
 </section>

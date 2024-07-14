@@ -3,6 +3,7 @@
     import MeetupGrid from "./Meetups/MeetupGrid.svelte";
     import TextInput from "./UI/TextInput.svelte";
     import Button from "./UI/Button.svelte";
+  import { missing_component } from "svelte/internal";
 
     let title = '';
     let subtitle = '';
@@ -19,7 +20,8 @@
             description: 'In this meetup, we will have some experts that teach you how to code',
             imageUrl: 'https://theforage.wpengine.com/wp-content/uploads/2023/02/Best-coding-bootcamps-online.jpg',
             address: '27 Nerd Road, 38236 New York',
-            contactEmail: 'code@test.com'
+            contactEmail: 'code@test.com',
+            isFavourite: false
         },
         {
             id: 'm2',
@@ -28,7 +30,8 @@
             description: 'We will simply swim some laps',
             imageUrl: 'https://secure.meetupstatic.com/photos/event/2/5/4/5/600_510609541.webp?w=750',
             address: '123 Pool Road, 38221 Boston',
-            contactEmail: 'swim@test.com'
+            contactEmail: 'swim@test.com',
+            isFavourite: false
         }
     ];
 
@@ -45,6 +48,16 @@
         }
 
         meetups = [newMeetup, ...meetups]
+    }
+
+    function toggleFavourite(event) {
+        const id = event.detail;
+        const updatedMeetup = {...meetups.find(m => m.id === id)};
+        updatedMeetup.isFavourite = !updatedMeetup.isFavourite;
+        const meetupIndex = meetups.findIndex(m => m.id === id)
+        const updatedMeetups = [...meetups]
+        updatedMeetups[meetupIndex] = updatedMeetup;
+        meetups = updatedMeetups;
     }
 </script>
 
@@ -108,5 +121,5 @@
             caption="Save"
         />
     </form>
-    <MeetupGrid {meetups}/>
+    <MeetupGrid {meetups} on:togglefavourite={toggleFavourite}/>
 </main>
