@@ -3,6 +3,7 @@
     export let caption;
     export let href = null;
     export let mode = null;
+    export let colour = null;
 </script>
 
 <style>
@@ -87,5 +88,5 @@
     <a {href}>{caption}</a>
 {:else}
     <!-- on:click without any parameter forwards events to parent component -->
-    <button class={mode} {type} on:click>{caption}</button>
+    <button class="{mode} {colour}" {type} on:click>{caption}</button>
 {/if}
