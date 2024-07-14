@@ -1,5 +1,5 @@
 <script>
-    import { createEventDispatcher } from 'svelte'
+    import { createEventDispatcher } from 'svelte';
     import TextInput from "../UI/TextInput.svelte";
     import Button from "../UI/Button.svelte";
 
@@ -32,7 +32,7 @@
     }
 </style>
 
-<form on:submit|preventDefault={() => {submitForm}}>
+<form on:submit|preventDefault={submitForm}>
     <TextInput
         id="title"
         label="Title"

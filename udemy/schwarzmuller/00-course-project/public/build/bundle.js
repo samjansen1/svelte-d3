@@ -2175,7 +2175,7 @@ var app = (function () {
     			t5 = space();
     			create_component(button.$$.fragment);
     			attr_dev(form, "class", "svelte-155vuri");
-    			add_location(form, file$1, 34, 0, 709);
+    			add_location(form, file$1, 34, 0, 710);
     		},
     		l: function claim(nodes) {
     			throw new Error("options.hydrate only works if the component was compiled with the `hydratable: true` option");
@@ -2198,7 +2198,7 @@ var app = (function () {
     			current = true;
 
     			if (!mounted) {
-    				dispose = listen_dev(form, "submit", prevent_default(/*submit_handler*/ ctx[13]), false, true, false, false);
+    				dispose = listen_dev(form, "submit", prevent_default(/*submitForm*/ ctx[6]), false, true, false, false);
     				mounted = true;
     			}
     		},
@@ -2303,9 +2303,6 @@ var app = (function () {
     	const input_handler_4 = event => $$invalidate(4, address = event.target.value);
     	const input_handler_5 = event => $$invalidate(5, email = event.target.value);
 
-    	const submit_handler = () => {
-    	};
-
     	$$self.$capture_state = () => ({
     		createEventDispatcher,
     		TextInput,
@@ -2346,8 +2343,7 @@ var app = (function () {
     		input_handler_2,
     		input_handler_3,
     		input_handler_4,
-    		input_handler_5,
-    		submit_handler
+    		input_handler_5
     	];
     }
 
@@ -2373,6 +2369,7 @@ var app = (function () {
     	let editmeetup;
     	let current;
     	editmeetup = new EditMeetup({ $$inline: true });
+    	editmeetup.$on("save", /*addMeetup*/ ctx[2]);
 
     	const block = {
     		c: function create() {
@@ -2382,6 +2379,7 @@ var app = (function () {
     			mount_component(editmeetup, target, anchor);
     			current = true;
     		},
+    		p: noop,
     		i: function intro(local) {
     			if (current) return;
     			transition_in(editmeetup.$$.fragment, local);
@@ -2411,6 +2409,7 @@ var app = (function () {
     	let header;
     	let t0;
     	let main;
+    	let div;
     	let button;
     	let t1;
     	let t2;
@@ -2423,7 +2422,7 @@ var app = (function () {
     			$$inline: true
     		});
 
-    	button.$on("click", /*click_handler*/ ctx[3]);
+    	button.$on("click", /*click_handler*/ ctx[4]);
     	let if_block = /*editMode*/ ctx[1] === 'add' && create_if_block(ctx);
 
     	meetupgrid = new MeetupGrid({
@@ -2431,20 +2430,23 @@ var app = (function () {
     			$$inline: true
     		});
 
-    	meetupgrid.$on("togglefavourite", /*toggleFavourite*/ ctx[2]);
+    	meetupgrid.$on("togglefavourite", /*toggleFavourite*/ ctx[3]);
 
     	const block = {
     		c: function create() {
     			create_component(header.$$.fragment);
     			t0 = space();
     			main = element("main");
+    			div = element("div");
     			create_component(button.$$.fragment);
     			t1 = space();
     			if (if_block) if_block.c();
     			t2 = space();
     			create_component(meetupgrid.$$.fragment);
-    			attr_dev(main, "class", "svelte-r5b0o4");
-    			add_location(main, file, 74, 0, 2223);
+    			attr_dev(div, "class", "meetup-controls svelte-ll9dx3");
+    			add_location(div, file, 73, 4, 2291);
+    			attr_dev(main, "class", "svelte-ll9dx3");
+    			add_location(main, file, 72, 0, 2280);
     		},
     		l: function claim(nodes) {
     			throw new Error("options.hydrate only works if the component was compiled with the `hydratable: true` option");
@@ -2453,7 +2455,8 @@ var app = (function () {
     			mount_component(header, target, anchor);
     			insert_dev(target, t0, anchor);
     			insert_dev(target, main, anchor);
-    			mount_component(button, main, null);
+    			append_dev(main, div);
+    			mount_component(button, div, null);
     			append_dev(main, t1);
     			if (if_block) if_block.m(main, null);
     			append_dev(main, t2);
@@ -2463,6 +2466,8 @@ var app = (function () {
     		p: function update(ctx, [dirty]) {
     			if (/*editMode*/ ctx[1] === 'add') {
     				if (if_block) {
+    					if_block.p(ctx, dirty);
+
     					if (dirty & /*editMode*/ 2) {
     						transition_in(if_block, 1);
     					}
@@ -2525,12 +2530,6 @@ var app = (function () {
     function instance($$self, $$props, $$invalidate) {
     	let { $$slots: slots = {}, $$scope } = $$props;
     	validate_slots('App', slots, []);
-    	let title = '';
-    	let subtitle = '';
-    	let description = '';
-    	let imageUrl = '';
-    	let address = '';
-    	let email = '';
 
     	let meetups = [
     		{
@@ -2557,18 +2556,20 @@ var app = (function () {
 
     	let editMode = null;
 
-    	function addMeetup() {
+    	function addMeetup(event) {
     		const newMeetup = {
     			id: Math.random().toString(),
-    			title,
-    			subtitle,
-    			description,
-    			imageUrl,
-    			address,
-    			contactEmail: email
+    			title: event.detail.title,
+    			subtitle: event.detail.subtitle,
+    			description: event.detail.description,
+    			imageUrl: event.detail.imageUrl,
+    			address: event.detail.address,
+    			contactEmail: event.detail.email,
+    			isFavourite: false
     		};
 
     		$$invalidate(0, meetups = [newMeetup, ...meetups]);
+    		$$invalidate(1, editMode = null);
     	}
 
     	function toggleFavourite(event) {
@@ -2596,12 +2597,6 @@ var app = (function () {
     		TextInput,
     		Button,
     		missing_component,
-    		title,
-    		subtitle,
-    		description,
-    		imageUrl,
-    		address,
-    		email,
     		meetups,
     		editMode,
     		addMeetup,
@@ -2609,12 +2604,6 @@ var app = (function () {
     	});
 
     	$$self.$inject_state = $$props => {
-    		if ('title' in $$props) title = $$props.title;
-    		if ('subtitle' in $$props) subtitle = $$props.subtitle;
-    		if ('description' in $$props) description = $$props.description;
-    		if ('imageUrl' in $$props) imageUrl = $$props.imageUrl;
-    		if ('address' in $$props) address = $$props.address;
-    		if ('email' in $$props) email = $$props.email;
     		if ('meetups' in $$props) $$invalidate(0, meetups = $$props.meetups);
     		if ('editMode' in $$props) $$invalidate(1, editMode = $$props.editMode);
     	};
@@ -2623,7 +2612,7 @@ var app = (function () {
     		$$self.$inject_state($$props.$$inject);
     	}
 
-    	return [meetups, editMode, toggleFavourite, click_handler];
+    	return [meetups, editMode, addMeetup, toggleFavourite, click_handler];
     }
 
     class App extends SvelteComponentDev {
