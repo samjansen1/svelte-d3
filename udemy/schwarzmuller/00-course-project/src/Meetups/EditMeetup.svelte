@@ -72,8 +72,5 @@
         type="email"
         on:input={event => email = event.target.value}
     />
-    <Button
-        type="submit"
-        caption="Save"
-    />
+    <Button type="submit">Save</Button>
 </form>

@@ -1,6 +1,5 @@
 <script>
     export let type = 'button';
-    export let caption;
     export let href = null;
     export let mode = null;
     export let colour = null;
@@ -85,8 +84,12 @@
 </style>
 
 {#if href}
-    <a {href}>{caption}</a>
+    <a {href}>
+        <slot />
+    </a>
 {:else}
     <!-- on:click without any parameter forwards events to parent component -->
-    <button class="{mode} {colour}" {type} on:click>{caption}</button>
+    <button class="{mode} {colour}" {type} on:click>
+        <slot />
+    </button>
 {/if}
