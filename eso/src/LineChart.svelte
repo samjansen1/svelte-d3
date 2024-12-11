@@ -7,7 +7,7 @@
     export let colour;
   
     // The chart dimensions and margins as optional props.
-    export let width = 900;
+    export let width = 1200;
     export let height = 400;
     export let marginTop = 20;
     export let marginRight = 30;

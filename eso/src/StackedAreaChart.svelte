@@ -9,12 +9,14 @@
     export let hoveredSource;
   
     // The chart dimensions and margins as optional props.
-    export let width = 900;
+    export let width = 1200;
     export let height = 550;
     export let marginTop = 20;
     export let marginRight = 30;
     export let marginBottom = 30;
     export let marginLeft = 50;
+
+    let tooltipEvent;
 
 	let stackedData = d3.stack()
 		.keys(keys)
@@ -49,9 +51,6 @@
   <svg
     {width}
     {height}
-    viewBox="0 0 {width} {height}"
-    style:max-width="100%"
-    style:height="auto"
   >
     <!-- X-Axis -->
     <g transform="translate(0,{height - marginBottom})">
@@ -121,13 +120,21 @@
     
       </text>
     </g>
-  
-    {#each stackedData as source, i}
+
+    <g
+      on:mouseleave={() => tooltipEvent = null}>
+      {#each stackedData as source, i}
     <path
         fill={colors[source.key]}
         fill-opacity={hoveredSource === source.key ? 1.0 : hoveredSource ? 0.3 : 1.0}
         stroke="none"
         d={area(source)}
+        on:mousemove={(event) => tooltipEvent = event}
     />
     {/each}
+    </g>
   </svg>
+
+{#if tooltipEvent}
+  <Tooltip {data} {xScale} {keys} bind:tooltipEvent={tooltipEvent}/>
+{/if}
