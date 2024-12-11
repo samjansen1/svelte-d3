@@ -2,23 +2,39 @@
 
     export let keys;
     export let clickedSource;
+    export let hoveredSource;
     export let colors;
 
     const clickHandler = (event) => clickedSource = event.target.innerText
+    const hoverHandler = (event) => hoveredSource = event.target.innerText
 </script>
 
 <div>
     <div>
         <p>High Carbon Sources:</p>
         {#each keys.slice(0,5) as key}
-            <button class=button on:click={clickHandler} style="background-color:{colors[key]}">{key}</button>
+            <button class=button
+                on:click={clickHandler}
+                on:mouseover={hoverHandler}
+                on:mouseout={() => hoveredSource = null}
+                style="background-color:{colors[key]}"
+            >
+                {key}
+            </button>
         {/each}
     </div>
     <div>
         <p>Low/Zero Carbon Sources:</p>
         {#each keys.slice(5) as key}
-            <button class=button on:click={clickHandler} style="background-color:{colors[key]}">{key}</button>
-        {/each}
+            <button class=button
+            on:click={clickHandler}
+            on:mouseover={hoverHandler}
+            on:mouseout={() => hoveredSource = null}
+            style="background-color:{colors[key]}"
+        >
+            {key}
+        </button>
+    {/each}
     </div>
 </div>
 

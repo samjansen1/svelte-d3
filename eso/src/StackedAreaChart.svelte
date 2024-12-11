@@ -1,10 +1,12 @@
 <script>
     import * as d3 from "d3";
+    import Tooltip from "./Tooltip.svelte";
   
     // Receive plot and yaxis data as prop.
     export let data;
     export let keys;
     export let colors;
+    export let hoveredSource;
   
     // The chart dimensions and margins as optional props.
     export let width = 900;
@@ -17,8 +19,6 @@
 	let stackedData = d3.stack()
 		.keys(keys)
 		(data)
-  
-    console.log(stackedData)
   
     // Create the x (horizontal position) scale.
     const xScale = d3.scaleUtc(
@@ -38,9 +38,6 @@
       .x((d) => xScale(d.data.DATE))
       .y0((d)=> yScale(d[0]))
       .y1((d) => yScale(d[1]));
-
-    let isHovered = false;
-    let hoveredSource;
 
     function tickLabelFormatter(tick) {
       const number = Number(tick) / 1000000
@@ -127,10 +124,8 @@
   
     {#each stackedData as source, i}
     <path
-        on:mouseover={() => {isHovered = true; hoveredSource = source}}
-        on:mouseout={() => {isHovered = false; hoveredSource = null}}
         fill={colors[source.key]}
-        fill-opacity={isHovered && source===hoveredSource ? 1.0 : isHovered ? 0.3 : 1.0}
+        fill-opacity={hoveredSource === source.key ? 1.0 : hoveredSource ? 0.3 : 1.0}
         stroke="none"
         d={area(source)}
     />

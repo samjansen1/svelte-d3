@@ -25,12 +25,13 @@
 	const keys = Object.keys(colors)
 
 	$: clickedSource = null;
+	$: hoveredSource = null;
 </script>
 
 <h1>Great Britain's Energy Generation Mix</h1>
 <h2>Historic Monthly Generation Mix from Jan 2009-Oct 2024</h2>
-<Legend {colors} {keys} bind:clickedSource={clickedSource} style='margin-bottom:1em'/>
-<StackedAreaChart data={dataset} {keys} {colors}/>
+<Legend {colors} {keys} bind:clickedSource={clickedSource} bind:hoveredSource={hoveredSource}  style='margin-bottom:1em'/>
+<StackedAreaChart data={dataset} {keys} {colors} {hoveredSource}/>
 {#if (clickedSource)}
 	<h4>Generation from {clickedSource[0]+clickedSource.substring(1).toLowerCase()} (MWh)</h4>
 	<LineChart data={dataset} y={clickedSource} colour={colors[clickedSource]}/>
