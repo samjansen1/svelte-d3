@@ -19,18 +19,26 @@
        return firstDayOfMonth;
     }
 
+    function formatDate(timestamp) {
+        const date = new Date(timestamp);
+        const formatter = Intl.DateTimeFormat('en-GB', { month: 'long', year: 'numeric' });
+        const formattedDate = formatter.format(date);
+
+        return formattedDate;
+    }
+
 
     $:tooltipDate = convertToFirstDayOfMonth(xScale.invert(tooltipEvent.offsetX))
     $:row = data.filter((row) => row.DATE.getTime() === new Date(tooltipDate).getTime())
     $:console.log(row[0])
-    $:style = `left: ${tooltipEvent.clientX + 10}px; top: 500px`
+    $:style = `left: 1250px; top: 400px`
 
 </script>
 
 <div class=tooltip
         style={style}
     >
-        {row[0].DATE}
+        <h4>{formatDate(row[0].DATE)}</h4>
         {#each keys as key}
             <p>{key}: {row[0][key]}</p>
         {/each}

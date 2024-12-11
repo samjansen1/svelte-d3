@@ -133,6 +133,10 @@
     />
     {/each}
     </g>
+
+    {#if tooltipEvent}
+      <line x1={tooltipEvent.clientX} x2={tooltipEvent.clientX} y1={marginTop} y2={height-marginBottom} style="stroke:black;stroke-width:1"></line>
+    {/if}
   </svg>
 
 {#if tooltipEvent}
