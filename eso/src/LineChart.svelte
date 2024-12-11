@@ -8,11 +8,11 @@
   
     // The chart dimensions and margins as optional props.
     export let width = 900;
-    export let height = 200;
+    export let height = 400;
     export let marginTop = 20;
     export let marginRight = 30;
     export let marginBottom = 30;
-    export let marginLeft = 100;
+    export let marginLeft = 50;
   
     // Create the x (horizontal position) scale.
     let xScale = d3.scaleUtc(
@@ -31,6 +31,11 @@
       .line()
       .x((d) => xScale(d.DATE))
       .y((d) => yScale(+d[y]));
+
+    function tickLabelFormatter(tick) {
+      const number = Number(tick) / 1000000
+      return number + 'M'
+    }
     
   </script>
   
@@ -43,12 +48,12 @@
   >
     <!-- X-Axis -->
     <g transform="translate(0,{height - marginBottom})">
-      <line stroke="currentColor" x1={marginLeft - 6} x2={width} />
+      <line stroke="black" x1={marginLeft - 6} x2={width} />
   
       {#each xScale.ticks() as tick}
         <!-- X-Axis Ticks -->
         <line
-          stroke="currentColor"
+          stroke="black"
           x1={xScale(tick)}
           x2={xScale(tick)}
           y1={0}
@@ -56,7 +61,7 @@
         />
   
         <!-- X-Axis Tick Labels -->
-        <text fill="currentColor" text-anchor="middle" x={xScale(tick)} y={22}>
+        <text fill="black" text-anchor="middle" x={xScale(tick)} y={22}>
           {tick.getFullYear()}
         </text>
       {/each}
@@ -71,7 +76,7 @@
             Note: First line is skipped since the x-axis is already present at 0. 
           -->
           <line
-            stroke="currentColor"
+            stroke="black"
             stroke-opacity="0.1"
             x1={0}
             x2={width - marginLeft}
@@ -84,7 +89,8 @@
             Note: First tick is skipped since the x-axis already acts as a tick. 
           -->
           <line
-            stroke="currentColor"
+            stroke="black"
+            stroke-opacity="0.1"
             x1={0}
             x2={-6}
             y1={yScale(tick)}
@@ -94,20 +100,15 @@
   
         <!-- Y-Axis Tick Labels -->
         <text
-          fill="currentColor"
+          fill="black"
           text-anchor="end"
           dominant-baseline="middle"
           x={-9}
           y={yScale(tick)}
         >
-          {tick}
+          {tickLabelFormatter(tick)}
         </text>
       {/each}
-  
-      <!-- Y-Axis Label -->
-      <text fill="currentColor" text-anchor="start" x={-marginLeft} y={15}>
-        {y}
-      </text>
     </g>
   
     <path fill="none" stroke={colour} stroke-width="1.5" d={line(data)} />

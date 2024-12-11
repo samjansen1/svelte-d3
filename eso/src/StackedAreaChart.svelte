@@ -12,7 +12,7 @@
     export let marginTop = 20;
     export let marginRight = 30;
     export let marginBottom = 30;
-    export let marginLeft = 100;
+    export let marginLeft = 50;
 
 	let stackedData = d3.stack()
 		.keys(keys)
@@ -42,8 +42,10 @@
     let isHovered = false;
     let hoveredSource;
 
-    console.log(colors)
-    console.log(colors['GAS'])
+    function tickLabelFormatter(tick) {
+      const number = Number(tick) / 1000000
+      return number + 'M'
+    }
 
   </script>
   
@@ -113,7 +115,7 @@
           x={-9}
           y={yScale(tick)}
         >
-          {tick}
+          {tickLabelFormatter(tick)}
         </text>
       {/each}
   
