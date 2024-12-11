@@ -4,16 +4,41 @@
     export let clickedSource;
     export let colors;
 
-    const clickHandler = (event) => clickedSource = event.target.getAttribute('source');
+    const clickHandler = (event) => clickedSource = event.target.innerText
 </script>
 
-<svg width=900 height=15>
-    {#each keys as key, i}
-        <g transform="translate({10+i*75}, 10)"
-            on:click={clickHandler}
-        >
-            <rect source={key} width="10" height="10" x=0 y=-5 fill={colors[key]}/>
-            <text source={key} font-size="10" x=15 text-anchor="left" dominant-baseline="middle">{key}</text>
-        </g>
-    {/each}
-</svg>
+<div>
+    <div>
+        <p>High Carbon Sources:</p>
+        {#each keys.slice(0,5) as key}
+            <button class=button on:click={clickHandler} style="background-color:{colors[key]}">{key}</button>
+        {/each}
+    </div>
+    <div>
+        <p>Low/Zero Carbon Sources:</p>
+        {#each keys.slice(5) as key}
+            <button class=button on:click={clickHandler} style="background-color:{colors[key]}">{key}</button>
+        {/each}
+    </div>
+</div>
+
+
+<style>
+
+/* CSS */
+.button {
+  align-items: center;
+  padding: 6px 14px;
+  font-family: -apple-system, BlinkMacSystemFont, 'Roboto', sans-serif;
+  border-radius: 6px;
+  border: none;
+  margin-right: 0.5em;
+
+  color: #fff;
+  background-origin: border-box;
+  box-shadow: 0px 0.5px 1.5px rgba(54, 122, 246, 0.25), inset 0px 0.8px 0px -0.25px rgba(255, 255, 255, 0.2);
+  user-select: none;
+  -webkit-user-select: none;
+  touch-action: manipulation;
+}
+</style>
