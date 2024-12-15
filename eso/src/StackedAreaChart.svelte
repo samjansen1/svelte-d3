@@ -135,7 +135,7 @@
     </g>
 
     {#if tooltipEvent}
-      <line x1={tooltipEvent.clientX} x2={tooltipEvent.clientX} y1={marginTop} y2={height-marginBottom} style="stroke:black;stroke-width:1"></line>
+      <line x1={tooltipEvent.offsetX+3} x2={tooltipEvent.offsetX+3} y1={marginTop} y2={height-marginBottom} style="stroke:black;stroke-width:1"></line>
     {/if}
   </svg>
 
