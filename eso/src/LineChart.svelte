@@ -1,6 +1,7 @@
 <script>
     import * as d3 from "d3";
-  
+    import { draw, fade } from "svelte/transition";
+    
     // Receive plot and yaxis data as prop.
     export let data;
     export let y;
@@ -48,11 +49,12 @@
   >
     <!-- X-Axis -->
     <g transform="translate(0,{height - marginBottom})">
-      <line stroke="black" x1={marginLeft - 6} x2={width} />
+      <line transition:fade={{delay:1000, duration:500}} stroke="black" x1={marginLeft - 6} x2={width} />
   
       {#each xScale.ticks() as tick}
         <!-- X-Axis Ticks -->
         <line
+          transition:fade={{delay:1000, duration:500}}
           stroke="black"
           x1={xScale(tick)}
           x2={xScale(tick)}
@@ -61,7 +63,7 @@
         />
   
         <!-- X-Axis Tick Labels -->
-        <text fill="black" text-anchor="middle" x={xScale(tick)} y={22}>
+        <text transition:fade={{delay:1000, duration:500}} fill="black" text-anchor="middle" x={xScale(tick)} y={22}>
           {tick.getFullYear()}
         </text>
       {/each}
@@ -76,6 +78,7 @@
             Note: First line is skipped since the x-axis is already present at 0. 
           -->
           <line
+            transition:fade={{delay:1000, duration:500}}
             stroke="black"
             stroke-opacity="0.1"
             x1={0}
@@ -89,6 +92,7 @@
             Note: First tick is skipped since the x-axis already acts as a tick. 
           -->
           <line
+            transition:fade={{delay:1000, duration:500}}
             stroke="black"
             stroke-opacity="0.1"
             x1={0}
@@ -100,6 +104,7 @@
   
         <!-- Y-Axis Tick Labels -->
         <text
+          transition:fade={{delay:1000, duration:500}}
           fill="black"
           text-anchor="end"
           dominant-baseline="middle"
@@ -111,5 +116,5 @@
       {/each}
     </g>
   
-    <path fill="none" stroke={colour} stroke-width="1.5" d={line(data)} />
+    <path transition:draw={{duration: 1500}} fill="none" stroke={colour} stroke-width="3" d={line(data)} />
   </svg>
