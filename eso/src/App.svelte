@@ -30,6 +30,7 @@
 
 <h1>Great Britain's Energy Generation Mix</h1>
 <h2>Historic Monthly Generation Mix from Jan 2009-Nov 2024</h2>
+<h3>Hover over an energy source to highlight it on the chart, click on it to generate a chart just for that source</h3>
 <Legend {colors} {keys} bind:clickedSource={clickedSource} bind:hoveredSource={hoveredSource}  style='margin-bottom:1em'/>
 <StackedAreaChart data={dataset} {keys} {colors} {hoveredSource}/>
 {#if (clickedSource)}
