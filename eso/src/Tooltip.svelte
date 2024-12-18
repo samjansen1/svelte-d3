@@ -31,7 +31,7 @@
     $:tooltipDate = convertToFirstDayOfMonth(xScale.invert(tooltipEvent.offsetX))
     $:row = data.filter((row) => row.DATE.getTime() === new Date(tooltipDate).getTime())
     $:console.log(row[0])
-    $:style = `left: 1250px; top: 400px`
+    $:style = `left: 1050px; top: 400px`
 
 </script>
 

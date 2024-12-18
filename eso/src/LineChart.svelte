@@ -1,6 +1,8 @@
 <script>
     import * as d3 from "d3";
+    import { interpolateString } from "d3-interpolate";
     import { draw, fade } from "svelte/transition";
+    import { tweened } from 'svelte/motion'
     
     // Receive plot and yaxis data as prop.
     export let data;
@@ -8,8 +10,8 @@
     export let colour;
   
     // The chart dimensions and margins as optional props.
-    export let width = 1200;
-    export let height = 400;
+    export let width = 1000;
+    export let height = 350;
     export let marginTop = 20;
     export let marginRight = 30;
     export let marginBottom = 30;
@@ -32,11 +34,20 @@
       .line()
       .x((d) => xScale(d.DATE))
       .y((d) => yScale(+d[y]));
+    
+    $: path = line(data)
 
     function tickLabelFormatter(tick) {
       const number = Number(tick) / 1000000
       return number + 'M'
     }
+
+    let animated_path = tweened(null, {
+      interpolate: interpolateString,
+      duration: 500,
+    })
+
+    $: animated_path.set(path)
     
   </script>
   
@@ -116,5 +127,5 @@
       {/each}
     </g>
   
-    <path transition:draw={{duration: 1500}} fill="none" stroke={colour} stroke-width="3" d={line(data)} />
+    <path transition:draw={{duration: 1500}} fill="none" stroke={colour} stroke-width="3" d={$animated_path} />
   </svg>
