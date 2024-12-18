@@ -68,12 +68,11 @@
   >
     <!-- X-Axis -->
     <g transform="translate(0,{height - marginBottom})">
-      <line transition:fade={{delay:1000, duration:500}} stroke="black" x1={marginLeft - 6} x2={width} />
+      <line stroke="black" x1={marginLeft - 6} x2={width} />
   
       {#each xScale.ticks() as tick}
         <!-- X-Axis Ticks -->
         <line
-          transition:fade={{delay:1000, duration:500}}
           stroke="black"
           x1={xScale(tick)}
           x2={xScale(tick)}
@@ -82,7 +81,7 @@
         />
   
         <!-- X-Axis Tick Labels -->
-        <text transition:fade={{delay:1000, duration:500}} fill="black" text-anchor="middle" x={xScale(tick)} y={22}>
+        <text fill="black" text-anchor="middle" x={xScale(tick)} y={22}>
           {tick.getFullYear()}
         </text>
       {/each}

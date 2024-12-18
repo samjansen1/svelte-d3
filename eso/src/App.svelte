@@ -1,5 +1,5 @@
 <script>
-	import data from "./gen_mix_clean.json";
+	import data from "../data/gen_mix_clean.json";
   	import LineChart from "./LineChart.svelte";
   	import StackedAreaChart from "./StackedAreaChart.svelte";
   	import Legend from "./Legend.svelte";
@@ -29,7 +29,7 @@
 </script>
 
 <h1>Great Britain's Energy Generation Mix</h1>
-<h2>Historic Monthly Generation Mix from Jan 2009-Oct 2024</h2>
+<h2>Historic Monthly Generation Mix from Jan 2009-Nov 2024</h2>
 <Legend {colors} {keys} bind:clickedSource={clickedSource} bind:hoveredSource={hoveredSource}  style='margin-bottom:1em'/>
 <StackedAreaChart data={dataset} {keys} {colors} {hoveredSource}/>
 {#if (clickedSource)}
