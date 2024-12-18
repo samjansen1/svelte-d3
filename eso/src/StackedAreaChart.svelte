@@ -140,5 +140,5 @@
   </svg>
 
 {#if tooltipEvent}
-  <Tooltip {data} {xScale} {keys} bind:tooltipEvent={tooltipEvent}/>
+  <Tooltip x=1050 y=400 {data} {xScale} {keys} bind:tooltipEvent={tooltipEvent}/>
 {/if}

@@ -4,6 +4,8 @@
     // export let colors;
     export let xScale;
     export let tooltipEvent;
+    export let x;
+    export let y;
 
     function convertToFirstDayOfMonth(timestamp) {
       // Parse the input timestamp into a Date object
@@ -30,8 +32,7 @@
 
     $:tooltipDate = convertToFirstDayOfMonth(xScale.invert(tooltipEvent.offsetX))
     $:row = data.filter((row) => row.DATE.getTime() === new Date(tooltipDate).getTime())
-    $:console.log(row[0])
-    $:style = `left: 1050px; top: 400px`
+    $:style = `left: ${x}px; top: ${y}px`
 
 </script>
 

@@ -3,6 +3,7 @@
     import { interpolateString } from "d3-interpolate";
     import { draw, fade } from "svelte/transition";
     import { tweened } from 'svelte/motion'
+    import Tooltip from "./Tooltip.svelte";
     
     // Receive plot and yaxis data as prop.
     export let data;
@@ -16,6 +17,8 @@
     export let marginRight = 30;
     export let marginBottom = 30;
     export let marginLeft = 50;
+
+    let tooltipEvent;
   
     // Create the x (horizontal position) scale.
     let xScale = d3.scaleUtc(
@@ -57,6 +60,11 @@
     viewBox="0 0 {width} {height}"
     style:max-width="100%"
     style:height="auto"
+    on:mousemove={(event) => tooltipEvent = event}
+    on:mouseleave={() => tooltipEvent = null}
+  >
+
+  <g class=chart-container
   >
     <!-- X-Axis -->
     <g transform="translate(0,{height - marginBottom})">
@@ -127,5 +135,14 @@
       {/each}
     </g>
   
-    <path transition:draw={{duration: 1500}} fill="none" stroke={colour} stroke-width="3" d={$animated_path} />
+    <path
+      transition:draw={{duration: 1500}} fill="none" stroke={colour} stroke-width="3" d={$animated_path} />
+    {#if tooltipEvent && tooltipEvent.offsetX >= xScale.range()[0] && tooltipEvent.offsetX <= xScale.range()[1]}
+      <line x1={tooltipEvent.offsetX+3} x2={tooltipEvent.offsetX+3} y1={marginTop} y2={height-marginBottom} style="stroke:black;stroke-width:1"></line>
+    {/if}
+  </g>
   </svg>
+
+  {#if tooltipEvent && tooltipEvent.offsetX >= xScale.range()[0] && tooltipEvent.offsetX <= xScale.range()[1]}
+    <Tooltip x=1050 y=1000 {data} {xScale} keys={[y]} bind:tooltipEvent={tooltipEvent}/>
+  {/if}
