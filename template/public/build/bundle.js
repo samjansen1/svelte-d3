@@ -1,409 +1,2226 @@
 
-(function(l, r) { if (!l || l.getElementById('livereloadscript')) return; r = l.createElement('script'); r.async = 1; r.src = '//' + (self.location.host || 'localhost').split(':')[0] + ':35730/livereload.js?snipver=1'; r.id = 'livereloadscript'; l.getElementsByTagName('head')[0].appendChild(r) })(self.document);
+(function(l, r) { if (!l || l.getElementById('livereloadscript')) return; r = l.createElement('script'); r.async = 1; r.src = '//' + (self.location.host || 'localhost').split(':')[0] + ':35731/livereload.js?snipver=1'; r.id = 'livereloadscript'; l.getElementsByTagName('head')[0].appendChild(r) })(self.document);
 var app = (function () {
-    'use strict';
+	'use strict';
 
-    function noop() { }
-    function add_location(element, file, line, column, char) {
-        element.__svelte_meta = {
-            loc: { file, line, column, char }
-        };
-    }
-    function run(fn) {
-        return fn();
-    }
-    function blank_object() {
-        return Object.create(null);
-    }
-    function run_all(fns) {
-        fns.forEach(run);
-    }
-    function is_function(thing) {
-        return typeof thing === 'function';
-    }
-    function safe_not_equal(a, b) {
-        return a != a ? b == b : a !== b || ((a && typeof a === 'object') || typeof a === 'function');
-    }
-    function is_empty(obj) {
-        return Object.keys(obj).length === 0;
-    }
-    function insert(target, node, anchor) {
-        target.insertBefore(node, anchor || null);
-    }
-    function detach(node) {
-        if (node.parentNode) {
-            node.parentNode.removeChild(node);
-        }
-    }
-    function element(name) {
-        return document.createElement(name);
-    }
-    function children(element) {
-        return Array.from(element.childNodes);
-    }
-    function custom_event(type, detail, { bubbles = false, cancelable = false } = {}) {
-        const e = document.createEvent('CustomEvent');
-        e.initCustomEvent(type, bubbles, cancelable, detail);
-        return e;
-    }
+	// generated during release, do not modify
 
-    let current_component;
-    function set_current_component(component) {
-        current_component = component;
-    }
+	const PUBLIC_VERSION = '5';
 
-    const dirty_components = [];
-    const binding_callbacks = [];
-    let render_callbacks = [];
-    const flush_callbacks = [];
-    const resolved_promise = /* @__PURE__ */ Promise.resolve();
-    let update_scheduled = false;
-    function schedule_update() {
-        if (!update_scheduled) {
-            update_scheduled = true;
-            resolved_promise.then(flush);
-        }
-    }
-    function add_render_callback(fn) {
-        render_callbacks.push(fn);
-    }
-    // flush() calls callbacks in this order:
-    // 1. All beforeUpdate callbacks, in order: parents before children
-    // 2. All bind:this callbacks, in reverse order: children before parents.
-    // 3. All afterUpdate callbacks, in order: parents before children. EXCEPT
-    //    for afterUpdates called during the initial onMount, which are called in
-    //    reverse order: children before parents.
-    // Since callbacks might update component values, which could trigger another
-    // call to flush(), the following steps guard against this:
-    // 1. During beforeUpdate, any updated components will be added to the
-    //    dirty_components array and will cause a reentrant call to flush(). Because
-    //    the flush index is kept outside the function, the reentrant call will pick
-    //    up where the earlier call left off and go through all dirty components. The
-    //    current_component value is saved and restored so that the reentrant call will
-    //    not interfere with the "parent" flush() call.
-    // 2. bind:this callbacks cannot trigger new flush() calls.
-    // 3. During afterUpdate, any updated components will NOT have their afterUpdate
-    //    callback called a second time; the seen_callbacks set, outside the flush()
-    //    function, guarantees this behavior.
-    const seen_callbacks = new Set();
-    let flushidx = 0; // Do *not* move this inside the flush() function
-    function flush() {
-        // Do not reenter flush while dirty components are updated, as this can
-        // result in an infinite loop. Instead, let the inner flush handle it.
-        // Reentrancy is ok afterwards for bindings etc.
-        if (flushidx !== 0) {
-            return;
-        }
-        const saved_component = current_component;
-        do {
-            // first, call beforeUpdate functions
-            // and update components
-            try {
-                while (flushidx < dirty_components.length) {
-                    const component = dirty_components[flushidx];
-                    flushidx++;
-                    set_current_component(component);
-                    update(component.$$);
-                }
-            }
-            catch (e) {
-                // reset dirty state to not end up in a deadlocked state and then rethrow
-                dirty_components.length = 0;
-                flushidx = 0;
-                throw e;
-            }
-            set_current_component(null);
-            dirty_components.length = 0;
-            flushidx = 0;
-            while (binding_callbacks.length)
-                binding_callbacks.pop()();
-            // then, once components are updated, call
-            // afterUpdate functions. This may cause
-            // subsequent updates...
-            for (let i = 0; i < render_callbacks.length; i += 1) {
-                const callback = render_callbacks[i];
-                if (!seen_callbacks.has(callback)) {
-                    // ...so guard against infinite loops
-                    seen_callbacks.add(callback);
-                    callback();
-                }
-            }
-            render_callbacks.length = 0;
-        } while (dirty_components.length);
-        while (flush_callbacks.length) {
-            flush_callbacks.pop()();
-        }
-        update_scheduled = false;
-        seen_callbacks.clear();
-        set_current_component(saved_component);
-    }
-    function update($$) {
-        if ($$.fragment !== null) {
-            $$.update();
-            run_all($$.before_update);
-            const dirty = $$.dirty;
-            $$.dirty = [-1];
-            $$.fragment && $$.fragment.p($$.ctx, dirty);
-            $$.after_update.forEach(add_render_callback);
-        }
-    }
-    /**
-     * Useful for example to execute remaining `afterUpdate` callbacks before executing `destroy`.
-     */
-    function flush_render_callbacks(fns) {
-        const filtered = [];
-        const targets = [];
-        render_callbacks.forEach((c) => fns.indexOf(c) === -1 ? filtered.push(c) : targets.push(c));
-        targets.forEach((c) => c());
-        render_callbacks = filtered;
-    }
-    const outroing = new Set();
-    function transition_in(block, local) {
-        if (block && block.i) {
-            outroing.delete(block);
-            block.i(local);
-        }
-    }
-    function mount_component(component, target, anchor, customElement) {
-        const { fragment, after_update } = component.$$;
-        fragment && fragment.m(target, anchor);
-        if (!customElement) {
-            // onMount happens before the initial afterUpdate
-            add_render_callback(() => {
-                const new_on_destroy = component.$$.on_mount.map(run).filter(is_function);
-                // if the component was destroyed immediately
-                // it will update the `$$.on_destroy` reference to `null`.
-                // the destructured on_destroy may still reference to the old array
-                if (component.$$.on_destroy) {
-                    component.$$.on_destroy.push(...new_on_destroy);
-                }
-                else {
-                    // Edge case - component was destroyed immediately,
-                    // most likely as a result of a binding initialising
-                    run_all(new_on_destroy);
-                }
-                component.$$.on_mount = [];
-            });
-        }
-        after_update.forEach(add_render_callback);
-    }
-    function destroy_component(component, detaching) {
-        const $$ = component.$$;
-        if ($$.fragment !== null) {
-            flush_render_callbacks($$.after_update);
-            run_all($$.on_destroy);
-            $$.fragment && $$.fragment.d(detaching);
-            // TODO null out other refs, including component.$$ (but need to
-            // preserve final state?)
-            $$.on_destroy = $$.fragment = null;
-            $$.ctx = [];
-        }
-    }
-    function make_dirty(component, i) {
-        if (component.$$.dirty[0] === -1) {
-            dirty_components.push(component);
-            schedule_update();
-            component.$$.dirty.fill(0);
-        }
-        component.$$.dirty[(i / 31) | 0] |= (1 << (i % 31));
-    }
-    function init(component, options, instance, create_fragment, not_equal, props, append_styles, dirty = [-1]) {
-        const parent_component = current_component;
-        set_current_component(component);
-        const $$ = component.$$ = {
-            fragment: null,
-            ctx: [],
-            // state
-            props,
-            update: noop,
-            not_equal,
-            bound: blank_object(),
-            // lifecycle
-            on_mount: [],
-            on_destroy: [],
-            on_disconnect: [],
-            before_update: [],
-            after_update: [],
-            context: new Map(options.context || (parent_component ? parent_component.$$.context : [])),
-            // everything else
-            callbacks: blank_object(),
-            dirty,
-            skip_bound: false,
-            root: options.target || parent_component.$$.root
-        };
-        append_styles && append_styles($$.root);
-        let ready = false;
-        $$.ctx = instance
-            ? instance(component, options.props || {}, (i, ret, ...rest) => {
-                const value = rest.length ? rest[0] : ret;
-                if ($$.ctx && not_equal($$.ctx[i], $$.ctx[i] = value)) {
-                    if (!$$.skip_bound && $$.bound[i])
-                        $$.bound[i](value);
-                    if (ready)
-                        make_dirty(component, i);
-                }
-                return ret;
-            })
-            : [];
-        $$.update();
-        ready = true;
-        run_all($$.before_update);
-        // `false` as a special case of no DOM component
-        $$.fragment = create_fragment ? create_fragment($$.ctx) : false;
-        if (options.target) {
-            if (options.hydrate) {
-                const nodes = children(options.target);
-                // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
-                $$.fragment && $$.fragment.l(nodes);
-                nodes.forEach(detach);
-            }
-            else {
-                // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
-                $$.fragment && $$.fragment.c();
-            }
-            if (options.intro)
-                transition_in(component.$$.fragment);
-            mount_component(component, options.target, options.anchor, options.customElement);
-            flush();
-        }
-        set_current_component(parent_component);
-    }
-    /**
-     * Base class for Svelte components. Used when dev=false.
-     */
-    class SvelteComponent {
-        $destroy() {
-            destroy_component(this, 1);
-            this.$destroy = noop;
-        }
-        $on(type, callback) {
-            if (!is_function(callback)) {
-                return noop;
-            }
-            const callbacks = (this.$$.callbacks[type] || (this.$$.callbacks[type] = []));
-            callbacks.push(callback);
-            return () => {
-                const index = callbacks.indexOf(callback);
-                if (index !== -1)
-                    callbacks.splice(index, 1);
-            };
-        }
-        $set($$props) {
-            if (this.$$set && !is_empty($$props)) {
-                this.$$.skip_bound = true;
-                this.$$set($$props);
-                this.$$.skip_bound = false;
-            }
-        }
-    }
+	if (typeof window !== 'undefined')
+		// @ts-ignore
+		(window.__svelte ||= { v: new Set() }).v.add(PUBLIC_VERSION);
 
-    function dispatch_dev(type, detail) {
-        document.dispatchEvent(custom_event(type, Object.assign({ version: '3.59.2' }, detail), { bubbles: true }));
-    }
-    function insert_dev(target, node, anchor) {
-        dispatch_dev('SvelteDOMInsert', { target, node, anchor });
-        insert(target, node, anchor);
-    }
-    function detach_dev(node) {
-        dispatch_dev('SvelteDOMRemove', { node });
-        detach(node);
-    }
-    function validate_slots(name, slot, keys) {
-        for (const slot_key of Object.keys(slot)) {
-            if (!~keys.indexOf(slot_key)) {
-                console.warn(`<${name}> received an unexpected slot "${slot_key}".`);
-            }
-        }
-    }
-    /**
-     * Base class for Svelte components with some minor dev-enhancements. Used when dev=true.
-     */
-    class SvelteComponentDev extends SvelteComponent {
-        constructor(options) {
-            if (!options || (!options.target && !options.$$inline)) {
-                throw new Error("'target' is a required option");
-            }
-            super();
-        }
-        $destroy() {
-            super.$destroy();
-            this.$destroy = () => {
-                console.warn('Component was already destroyed'); // eslint-disable-line no-console
-            };
-        }
-        $capture_state() { }
-        $inject_state() { }
-    }
+	let legacy_mode_flag = false;
+	let tracing_mode_flag = false;
 
-    /* src/App.svelte generated by Svelte v3.59.2 */
+	function enable_legacy_mode_flag() {
+		legacy_mode_flag = true;
+	}
 
-    const file = "src/App.svelte";
+	enable_legacy_mode_flag();
 
-    function create_fragment(ctx) {
-    	let h1;
+	const TEMPLATE_FRAGMENT = 1;
+	const TEMPLATE_USE_IMPORT_NODE = 1 << 1;
 
-    	const block = {
-    		c: function create() {
-    			h1 = element("h1");
-    			h1.textContent = "New Project!";
-    			add_location(h1, file, 0, 0, 0);
-    		},
-    		l: function claim(nodes) {
-    			throw new Error("options.hydrate only works if the component was compiled with the `hydratable: true` option");
-    		},
-    		m: function mount(target, anchor) {
-    			insert_dev(target, h1, anchor);
-    		},
-    		p: noop,
-    		i: noop,
-    		o: noop,
-    		d: function destroy(detaching) {
-    			if (detaching) detach_dev(h1);
-    		}
-    	};
+	// Dev-time component properties
+	const FILENAME = Symbol('filename');
 
-    	dispatch_dev("SvelteRegisterBlock", {
-    		block,
-    		id: create_fragment.name,
-    		type: "component",
-    		source: "",
-    		ctx
-    	});
+	/**
+	 * Subset of delegated events which should be passive by default.
+	 * These two are already passive via browser defaults on window, document and body.
+	 * But since
+	 * - we're delegating them
+	 * - they happen often
+	 * - they apply to mobile which is generally less performant
+	 * we're marking them as passive by default for other elements, too.
+	 */
+	const PASSIVE_EVENTS = ['touchstart', 'touchmove'];
 
-    	return block;
-    }
+	/**
+	 * Returns `true` if `name` is a passive event
+	 * @param {string} name
+	 */
+	function is_passive_event(name) {
+		return PASSIVE_EVENTS.includes(name);
+	}
 
-    function instance($$self, $$props) {
-    	let { $$slots: slots = {}, $$scope } = $$props;
-    	validate_slots('App', slots, []);
-    	const writable_props = [];
+	const node_env = globalThis.process?.env?.NODE_ENV;
+	if (!node_env) {
+		console.warn('If bundling, conditions should include development or production. If not bundling, conditions or NODE_ENV should include development or production. See https://www.npmjs.com/package/esm-env for tips on setting conditions in popular bundlers and runtimes.');
+	}
 
-    	Object.keys($$props).forEach(key => {
-    		if (!~writable_props.indexOf(key) && key.slice(0, 2) !== '$$' && key !== 'slot') console.warn(`<App> was created with unknown prop '${key}'`);
-    	});
+	var DEV = node_env && !node_env.toLowerCase().includes('prod');
 
-    	return [];
-    }
+	// Store the references to globals in case someone tries to monkey patch these, causing the below
+	// to de-opt (this occurs often when using popular extensions).
+	var is_array = Array.isArray;
+	var array_from = Array.from;
+	var define_property = Object.defineProperty;
+	var get_descriptor = Object.getOwnPropertyDescriptor;
 
-    class App extends SvelteComponentDev {
-    	constructor(options) {
-    		super(options);
-    		init(this, options, instance, create_fragment, safe_not_equal, {});
+	const DERIVED = 1 << 1;
+	const EFFECT = 1 << 2;
+	const RENDER_EFFECT = 1 << 3;
+	const BLOCK_EFFECT = 1 << 4;
+	const BRANCH_EFFECT = 1 << 5;
+	const ROOT_EFFECT = 1 << 6;
+	const BOUNDARY_EFFECT = 1 << 7;
+	const UNOWNED = 1 << 8;
+	const DISCONNECTED = 1 << 9;
+	const CLEAN = 1 << 10;
+	const DIRTY = 1 << 11;
+	const MAYBE_DIRTY = 1 << 12;
+	const INERT = 1 << 13;
+	const DESTROYED = 1 << 14;
+	const EFFECT_RAN = 1 << 15;
+	/** 'Transparent' effects do not create a transition boundary */
+	const EFFECT_TRANSPARENT = 1 << 16;
+	const INSPECT_EFFECT = 1 << 18;
+	const HEAD_EFFECT = 1 << 19;
+	const EFFECT_HAS_DERIVED = 1 << 20;
 
-    		dispatch_dev("SvelteRegisterComponent", {
-    			component: this,
-    			tagName: "App",
-    			options,
-    			id: create_fragment.name
-    		});
-    	}
-    }
+	const STATE_SYMBOL = Symbol('$state');
 
-    const app = new App({
-    	target: document.body,
-    });
+	/** @import { Equals } from '#client' */
+	/** @type {Equals} */
+	function equals(value) {
+		return value === this.v;
+	}
 
-    return app;
+	/* This file is generated by scripts/process-messages/index.js. Do not edit! */
+
+
+	/**
+	 * %parent% called `%method%` on an instance of %component%, which is no longer valid in Svelte 5
+	 * @param {string} parent
+	 * @param {string} method
+	 * @param {string} component
+	 * @returns {never}
+	 */
+	function component_api_changed(parent, method, component) {
+		if (DEV) {
+			const error = new Error(`component_api_changed\n${parent} called \`${method}\` on an instance of ${component}, which is no longer valid in Svelte 5\nhttps://svelte.dev/e/component_api_changed`);
+
+			error.name = 'Svelte error';
+			throw error;
+		} else {
+			throw new Error(`https://svelte.dev/e/component_api_changed`);
+		}
+	}
+
+	/**
+	 * Attempted to instantiate %component% with `new %name%`, which is no longer valid in Svelte 5. If this component is not under your control, set the `compatibility.componentApi` compiler option to `4` to keep it working.
+	 * @param {string} component
+	 * @param {string} name
+	 * @returns {never}
+	 */
+	function component_api_invalid_new(component, name) {
+		if (DEV) {
+			const error = new Error(`component_api_invalid_new\nAttempted to instantiate ${component} with \`new ${name}\`, which is no longer valid in Svelte 5. If this component is not under your control, set the \`compatibility.componentApi\` compiler option to \`4\` to keep it working.\nhttps://svelte.dev/e/component_api_invalid_new`);
+
+			error.name = 'Svelte error';
+			throw error;
+		} else {
+			throw new Error(`https://svelte.dev/e/component_api_invalid_new`);
+		}
+	}
+
+	/**
+	 * A derived value cannot reference itself recursively
+	 * @returns {never}
+	 */
+	function derived_references_self() {
+		if (DEV) {
+			const error = new Error(`derived_references_self\nA derived value cannot reference itself recursively\nhttps://svelte.dev/e/derived_references_self`);
+
+			error.name = 'Svelte error';
+			throw error;
+		} else {
+			throw new Error(`https://svelte.dev/e/derived_references_self`);
+		}
+	}
+
+	/**
+	 * Maximum update depth exceeded. This can happen when a reactive block or effect repeatedly sets a new value. Svelte limits the number of nested updates to prevent infinite loops
+	 * @returns {never}
+	 */
+	function effect_update_depth_exceeded() {
+		if (DEV) {
+			const error = new Error(`effect_update_depth_exceeded\nMaximum update depth exceeded. This can happen when a reactive block or effect repeatedly sets a new value. Svelte limits the number of nested updates to prevent infinite loops\nhttps://svelte.dev/e/effect_update_depth_exceeded`);
+
+			error.name = 'Svelte error';
+			throw error;
+		} else {
+			throw new Error(`https://svelte.dev/e/effect_update_depth_exceeded`);
+		}
+	}
+
+	/**
+	 * The `%rune%` rune is only available inside `.svelte` and `.svelte.js/ts` files
+	 * @param {string} rune
+	 * @returns {never}
+	 */
+	function rune_outside_svelte(rune) {
+		if (DEV) {
+			const error = new Error(`rune_outside_svelte\nThe \`${rune}\` rune is only available inside \`.svelte\` and \`.svelte.js/ts\` files\nhttps://svelte.dev/e/rune_outside_svelte`);
+
+			error.name = 'Svelte error';
+			throw error;
+		} else {
+			throw new Error(`https://svelte.dev/e/rune_outside_svelte`);
+		}
+	}
+
+	/** @import { Derived, Reaction, Signal, Value } from '#client' */
+
+	/**
+	 * @param {string} label
+	 */
+	function get_stack$1(label) {
+		let error = Error();
+		const stack = error.stack;
+
+		if (stack) {
+			const lines = stack.split('\n');
+			const new_lines = ['\n'];
+
+			for (let i = 0; i < lines.length; i++) {
+				const line = lines[i];
+
+				if (line === 'Error') {
+					continue;
+				}
+				if (line.includes('validate_each_keys')) {
+					return null;
+				}
+				if (line.includes('svelte/src/internal')) {
+					continue;
+				}
+				new_lines.push(line);
+			}
+
+			if (new_lines.length === 1) {
+				return null;
+			}
+
+			define_property(error, 'stack', {
+				value: new_lines.join('\n')
+			});
+
+			define_property(error, 'name', {
+				// 'Error' suffix is required for stack traces to be rendered properly
+				value: `${label}Error`
+			});
+		}
+		return error;
+	}
+
+	/** @import { Derived, Effect, Reaction, Source, Value } from '#client' */
+
+	/**
+	 * @template V
+	 * @param {V} v
+	 * @param {Error | null} [stack]
+	 * @returns {Source<V>}
+	 */
+	function source(v, stack) {
+		/** @type {Value} */
+		var signal = {
+			f: 0, // TODO ideally we could skip this altogether, but it causes type errors
+			v,
+			reactions: null,
+			equals,
+			version: 0
+		};
+
+		if (DEV && tracing_mode_flag) {
+			signal.created = stack ?? get_stack$1('CreatedAt');
+			signal.debug = null;
+		}
+
+		return signal;
+	}
+
+	/* This file is generated by scripts/process-messages/index.js. Do not edit! */
+
+
+	var bold = 'font-weight: bold';
+	var normal = 'font-weight: normal';
+
+	/**
+	 * Reactive `$state(...)` proxies and the values they proxy have different identities. Because of this, comparisons with `%operator%` will produce unexpected results
+	 * @param {string} operator
+	 */
+	function state_proxy_equality_mismatch(operator) {
+		if (DEV) {
+			console.warn(`%c[svelte] state_proxy_equality_mismatch\n%cReactive \`$state(...)\` proxies and the values they proxy have different identities. Because of this, comparisons with \`${operator}\` will produce unexpected results\nhttps://svelte.dev/e/state_proxy_equality_mismatch`, bold, normal);
+		} else {
+			console.warn(`https://svelte.dev/e/state_proxy_equality_mismatch`);
+		}
+	}
+
+	/** @import { ProxyMetadata } from '#client' */
+	/** @typedef {{ file: string, line: number, column: number }} Location */
+
+
+	/** @type {Record<string, Array<{ start: Location, end: Location, component: Function }>>} */
+	const boundaries = {};
+
+	const chrome_pattern = /at (?:.+ \()?(.+):(\d+):(\d+)\)?$/;
+	const firefox_pattern = /@(.+):(\d+):(\d+)$/;
+
+	function get_stack() {
+		const stack = new Error().stack;
+		if (!stack) return null;
+
+		const entries = [];
+
+		for (const line of stack.split('\n')) {
+			let match = chrome_pattern.exec(line) ?? firefox_pattern.exec(line);
+
+			if (match) {
+				entries.push({
+					file: match[1],
+					line: +match[2],
+					column: +match[3]
+				});
+			}
+		}
+
+		return entries;
+	}
+
+	/**
+	 * Determines which `.svelte` component is responsible for a given state change
+	 * @returns {Function | null}
+	 */
+	function get_component() {
+		// first 4 lines are svelte internals; adjust this number if we change the internal call stack
+		const stack = get_stack()?.slice(4);
+		if (!stack) return null;
+
+		for (let i = 0; i < stack.length; i++) {
+			const entry = stack[i];
+			const modules = boundaries[entry.file];
+			if (!modules) {
+				// If the first entry is not a component, that means the modification very likely happened
+				// within a .svelte.js file, possibly triggered by a component. Since these files are not part
+				// of the bondaries/component context heuristic, we need to bail in this case, else we would
+				// have false positives when the .svelte.ts file provides a state creator function, encapsulating
+				// the state and its mutations, and is being called from a component other than the one who
+				// called the state creator function.
+				if (i === 0) return null;
+				continue;
+			}
+
+			for (const module of modules) {
+				if (module.end == null) {
+					return null;
+				}
+				if (module.start.line < entry.line && module.end.line > entry.line) {
+					return module.component;
+				}
+			}
+		}
+
+		return null;
+	}
+
+	/**
+	 * Together with `mark_module_end`, this function establishes the boundaries of a `.svelte` file,
+	 * such that subsequent calls to `get_component` can tell us which component is responsible
+	 * for a given state change
+	 */
+	function mark_module_start() {
+		const start = get_stack()?.[2];
+
+		if (start) {
+			(boundaries[start.file] ??= []).push({
+				start,
+				// @ts-expect-error
+				end: null,
+				// @ts-expect-error we add the component at the end, since HMR will overwrite the function
+				component: null
+			});
+		}
+	}
+
+	/**
+	 * @param {Function} component
+	 */
+	function mark_module_end(component) {
+		const end = get_stack()?.[2];
+
+		if (end) {
+			const boundaries_file = boundaries[end.file];
+			const boundary = boundaries_file[boundaries_file.length - 1];
+
+			boundary.end = end;
+			boundary.component = component;
+		}
+	}
+
+	/** @import { ProxyMetadata, ProxyStateObject, Source } from '#client' */
+
+	/**
+	 * @param {any} value
+	 */
+	function get_proxied_value(value) {
+		if (value !== null && typeof value === 'object' && STATE_SYMBOL in value) {
+			return value[STATE_SYMBOL];
+		}
+
+		return value;
+	}
+
+	function init_array_prototype_warnings() {
+		const array_prototype = Array.prototype;
+		// The REPL ends up here over and over, and this prevents it from adding more and more patches
+		// of the same kind to the prototype, which would slow down everything over time.
+		// @ts-expect-error
+		const cleanup = Array.__svelte_cleanup;
+		if (cleanup) {
+			cleanup();
+		}
+
+		const { indexOf, lastIndexOf, includes } = array_prototype;
+
+		array_prototype.indexOf = function (item, from_index) {
+			const index = indexOf.call(this, item, from_index);
+
+			if (index === -1) {
+				for (let i = from_index ?? 0; i < this.length; i += 1) {
+					if (get_proxied_value(this[i]) === item) {
+						state_proxy_equality_mismatch('array.indexOf(...)');
+						break;
+					}
+				}
+			}
+
+			return index;
+		};
+
+		array_prototype.lastIndexOf = function (item, from_index) {
+			// we need to specify this.length - 1 because it's probably using something like
+			// `arguments` inside so passing undefined is different from not passing anything
+			const index = lastIndexOf.call(this, item, from_index ?? this.length - 1);
+
+			if (index === -1) {
+				for (let i = 0; i <= (from_index ?? this.length - 1); i += 1) {
+					if (get_proxied_value(this[i]) === item) {
+						state_proxy_equality_mismatch('array.lastIndexOf(...)');
+						break;
+					}
+				}
+			}
+
+			return index;
+		};
+
+		array_prototype.includes = function (item, from_index) {
+			const has = includes.call(this, item, from_index);
+
+			if (!has) {
+				for (let i = 0; i < this.length; i += 1) {
+					if (get_proxied_value(this[i]) === item) {
+						state_proxy_equality_mismatch('array.includes(...)');
+						break;
+					}
+				}
+			}
+
+			return has;
+		};
+
+		// @ts-expect-error
+		Array.__svelte_cleanup = () => {
+			array_prototype.indexOf = indexOf;
+			array_prototype.lastIndexOf = lastIndexOf;
+			array_prototype.includes = includes;
+		};
+	}
+
+	/** @import { TemplateNode } from '#client' */
+
+	// export these for reference in the compiled code, making global name deduplication unnecessary
+	/** @type {Window} */
+	var $window;
+
+	/** @type {() => Node | null} */
+	var first_child_getter;
+	/** @type {() => Node | null} */
+	var next_sibling_getter;
+
+	/**
+	 * Initialize these lazily to avoid issues when using the runtime in a server context
+	 * where these globals are not available while avoiding a separate server entry point
+	 */
+	function init_operations() {
+		if ($window !== undefined) {
+			return;
+		}
+
+		$window = window;
+
+		var element_prototype = Element.prototype;
+		var node_prototype = Node.prototype;
+
+		// @ts-ignore
+		first_child_getter = get_descriptor(node_prototype, 'firstChild').get;
+		// @ts-ignore
+		next_sibling_getter = get_descriptor(node_prototype, 'nextSibling').get;
+
+		// the following assignments improve perf of lookups on DOM nodes
+		// @ts-expect-error
+		element_prototype.__click = undefined;
+		// @ts-expect-error
+		element_prototype.__className = '';
+		// @ts-expect-error
+		element_prototype.__attributes = null;
+		// @ts-expect-error
+		element_prototype.__styles = null;
+		// @ts-expect-error
+		element_prototype.__e = undefined;
+
+		// @ts-expect-error
+		Text.prototype.__t = undefined;
+
+		if (DEV) {
+			// @ts-expect-error
+			element_prototype.__svelte_meta = null;
+
+			init_array_prototype_warnings();
+		}
+	}
+
+	/**
+	 * @param {string} value
+	 * @returns {Text}
+	 */
+	function create_text(value = '') {
+		return document.createTextNode(value);
+	}
+
+	/**
+	 * @template {Node} N
+	 * @param {N} node
+	 * @returns {Node | null}
+	 */
+	/*@__NO_SIDE_EFFECTS__*/
+	function get_first_child(node) {
+		return first_child_getter.call(node);
+	}
+
+	/**
+	 * @template {Node} N
+	 * @param {N} node
+	 * @returns {Node | null}
+	 */
+	/*@__NO_SIDE_EFFECTS__*/
+	function get_next_sibling(node) {
+		return next_sibling_getter.call(node);
+	}
+
+	/** @import { Derived, Effect } from '#client' */
+
+	/**
+	 * @param {Derived} derived
+	 * @returns {void}
+	 */
+	function destroy_derived_children(derived) {
+		var children = derived.children;
+
+		if (children !== null) {
+			derived.children = null;
+
+			for (var i = 0; i < children.length; i += 1) {
+				var child = children[i];
+				if ((child.f & DERIVED) !== 0) {
+					destroy_derived(/** @type {Derived} */ (child));
+				} else {
+					destroy_effect(/** @type {Effect} */ (child));
+				}
+			}
+		}
+	}
+
+	/**
+	 * The currently updating deriveds, used to detect infinite recursion
+	 * in dev mode and provide a nicer error than 'too much recursion'
+	 * @type {Derived[]}
+	 */
+	let stack = [];
+
+	/**
+	 * @param {Derived} derived
+	 * @returns {Effect | null}
+	 */
+	function get_derived_parent_effect(derived) {
+		var parent = derived.parent;
+		while (parent !== null) {
+			if ((parent.f & DERIVED) === 0) {
+				return /** @type {Effect} */ (parent);
+			}
+			parent = parent.parent;
+		}
+		return null;
+	}
+
+	/**
+	 * @template T
+	 * @param {Derived} derived
+	 * @returns {T}
+	 */
+	function execute_derived(derived) {
+		var value;
+		var prev_active_effect = active_effect;
+
+		set_active_effect(get_derived_parent_effect(derived));
+
+		if (DEV) {
+			try {
+				if (stack.includes(derived)) {
+					derived_references_self();
+				}
+
+				stack.push(derived);
+
+				destroy_derived_children(derived);
+				value = update_reaction(derived);
+			} finally {
+				set_active_effect(prev_active_effect);
+				stack.pop();
+			}
+		} else {
+			try {
+				destroy_derived_children(derived);
+				value = update_reaction(derived);
+			} finally {
+				set_active_effect(prev_active_effect);
+			}
+		}
+
+		return value;
+	}
+
+	/**
+	 * @param {Derived} derived
+	 * @returns {void}
+	 */
+	function update_derived(derived) {
+		var value = execute_derived(derived);
+		var status =
+			(skip_reaction || (derived.f & UNOWNED) !== 0) && derived.deps !== null ? MAYBE_DIRTY : CLEAN;
+
+		set_signal_status(derived, status);
+
+		if (!derived.equals(value)) {
+			derived.v = value;
+			derived.version = increment_version();
+		}
+	}
+
+	/**
+	 * @param {Derived} derived
+	 * @returns {void}
+	 */
+	function destroy_derived(derived) {
+		destroy_derived_children(derived);
+		remove_reactions(derived, 0);
+		set_signal_status(derived, DESTROYED);
+
+		derived.v = derived.children = derived.deps = derived.ctx = derived.reactions = null;
+	}
+
+	/** @import { ComponentContext, ComponentContextLegacy, Derived, Effect, TemplateNode, TransitionManager } from '#client' */
+
+	/**
+	 * @param {Effect} effect
+	 * @param {Effect} parent_effect
+	 */
+	function push_effect(effect, parent_effect) {
+		var parent_last = parent_effect.last;
+		if (parent_last === null) {
+			parent_effect.last = parent_effect.first = effect;
+		} else {
+			parent_last.next = effect;
+			effect.prev = parent_last;
+			parent_effect.last = effect;
+		}
+	}
+
+	/**
+	 * @param {number} type
+	 * @param {null | (() => void | (() => void))} fn
+	 * @param {boolean} sync
+	 * @param {boolean} push
+	 * @returns {Effect}
+	 */
+	function create_effect(type, fn, sync, push = true) {
+		var is_root = (type & ROOT_EFFECT) !== 0;
+		var parent_effect = active_effect;
+
+		if (DEV) {
+			// Ensure the parent is never an inspect effect
+			while (parent_effect !== null && (parent_effect.f & INSPECT_EFFECT) !== 0) {
+				parent_effect = parent_effect.parent;
+			}
+		}
+
+		/** @type {Effect} */
+		var effect = {
+			ctx: component_context,
+			deps: null,
+			deriveds: null,
+			nodes_start: null,
+			nodes_end: null,
+			f: type | DIRTY,
+			first: null,
+			fn,
+			last: null,
+			next: null,
+			parent: is_root ? null : parent_effect,
+			prev: null,
+			teardown: null,
+			transitions: null,
+			version: 0
+		};
+
+		if (DEV) {
+			effect.component_function = dev_current_component_function;
+		}
+
+		if (sync) {
+			var previously_flushing_effect = is_flushing_effect;
+
+			try {
+				set_is_flushing_effect(true);
+				update_effect(effect);
+				effect.f |= EFFECT_RAN;
+			} catch (e) {
+				destroy_effect(effect);
+				throw e;
+			} finally {
+				set_is_flushing_effect(previously_flushing_effect);
+			}
+		} else if (fn !== null) {
+			schedule_effect(effect);
+		}
+
+		// if an effect has no dependencies, no DOM and no teardown function,
+		// don't bother adding it to the effect tree
+		var inert =
+			sync &&
+			effect.deps === null &&
+			effect.first === null &&
+			effect.nodes_start === null &&
+			effect.teardown === null &&
+			(effect.f & EFFECT_HAS_DERIVED) === 0;
+
+		if (!inert && !is_root && push) {
+			if (parent_effect !== null) {
+				push_effect(effect, parent_effect);
+			}
+
+			// if we're in a derived, add the effect there too
+			if (active_reaction !== null && (active_reaction.f & DERIVED) !== 0) {
+				var derived = /** @type {Derived} */ (active_reaction);
+				(derived.children ??= []).push(effect);
+			}
+		}
+
+		return effect;
+	}
+
+	/**
+	 * An effect root whose children can transition out
+	 * @param {() => void} fn
+	 * @returns {(options?: { outro?: boolean }) => Promise<void>}
+	 */
+	function component_root(fn) {
+		const effect = create_effect(ROOT_EFFECT, fn, true);
+
+		return (options = {}) => {
+			return new Promise((fulfil) => {
+				if (options.outro) {
+					pause_effect(effect, () => {
+						destroy_effect(effect);
+						fulfil(undefined);
+					});
+				} else {
+					destroy_effect(effect);
+					fulfil(undefined);
+				}
+			});
+		};
+	}
+
+	/**
+	 * @param {() => void | (() => void)} fn
+	 * @returns {Effect}
+	 */
+	function effect(fn) {
+		return create_effect(EFFECT, fn, false);
+	}
+
+	/**
+	 * @param {(() => void)} fn
+	 * @param {boolean} [push]
+	 */
+	function branch(fn, push = true) {
+		return create_effect(RENDER_EFFECT | BRANCH_EFFECT, fn, true, push);
+	}
+
+	/**
+	 * @param {Effect} effect
+	 */
+	function execute_effect_teardown(effect) {
+		var teardown = effect.teardown;
+		if (teardown !== null) {
+			const previous_reaction = active_reaction;
+			set_active_reaction(null);
+			try {
+				teardown.call(null);
+			} finally {
+				set_active_reaction(previous_reaction);
+			}
+		}
+	}
+
+	/**
+	 * @param {Effect} signal
+	 * @returns {void}
+	 */
+	function destroy_effect_deriveds(signal) {
+		var deriveds = signal.deriveds;
+
+		if (deriveds !== null) {
+			signal.deriveds = null;
+
+			for (var i = 0; i < deriveds.length; i += 1) {
+				destroy_derived(deriveds[i]);
+			}
+		}
+	}
+
+	/**
+	 * @param {Effect} signal
+	 * @param {boolean} remove_dom
+	 * @returns {void}
+	 */
+	function destroy_effect_children(signal, remove_dom = false) {
+		var effect = signal.first;
+		signal.first = signal.last = null;
+
+		while (effect !== null) {
+			var next = effect.next;
+			destroy_effect(effect, remove_dom);
+			effect = next;
+		}
+	}
+
+	/**
+	 * @param {Effect} signal
+	 * @returns {void}
+	 */
+	function destroy_block_effect_children(signal) {
+		var effect = signal.first;
+
+		while (effect !== null) {
+			var next = effect.next;
+			if ((effect.f & BRANCH_EFFECT) === 0) {
+				destroy_effect(effect);
+			}
+			effect = next;
+		}
+	}
+
+	/**
+	 * @param {Effect} effect
+	 * @param {boolean} [remove_dom]
+	 * @returns {void}
+	 */
+	function destroy_effect(effect, remove_dom = true) {
+		var removed = false;
+
+		if ((remove_dom || (effect.f & HEAD_EFFECT) !== 0) && effect.nodes_start !== null) {
+			/** @type {TemplateNode | null} */
+			var node = effect.nodes_start;
+			var end = effect.nodes_end;
+
+			while (node !== null) {
+				/** @type {TemplateNode | null} */
+				var next = node === end ? null : /** @type {TemplateNode} */ (get_next_sibling(node));
+
+				node.remove();
+				node = next;
+			}
+
+			removed = true;
+		}
+
+		destroy_effect_children(effect, remove_dom && !removed);
+		destroy_effect_deriveds(effect);
+		remove_reactions(effect, 0);
+		set_signal_status(effect, DESTROYED);
+
+		var transitions = effect.transitions;
+
+		if (transitions !== null) {
+			for (const transition of transitions) {
+				transition.stop();
+			}
+		}
+
+		execute_effect_teardown(effect);
+
+		var parent = effect.parent;
+
+		// If the parent doesn't have any children, then skip this work altogether
+		if (parent !== null && parent.first !== null) {
+			unlink_effect(effect);
+		}
+
+		if (DEV) {
+			effect.component_function = null;
+		}
+
+		// `first` and `child` are nulled out in destroy_effect_children
+		// we don't null out `parent` so that error propagation can work correctly
+		effect.next =
+			effect.prev =
+			effect.teardown =
+			effect.ctx =
+			effect.deps =
+			effect.fn =
+			effect.nodes_start =
+			effect.nodes_end =
+				null;
+	}
+
+	/**
+	 * Detach an effect from the effect tree, freeing up memory and
+	 * reducing the amount of work that happens on subsequent traversals
+	 * @param {Effect} effect
+	 */
+	function unlink_effect(effect) {
+		var parent = effect.parent;
+		var prev = effect.prev;
+		var next = effect.next;
+
+		if (prev !== null) prev.next = next;
+		if (next !== null) next.prev = prev;
+
+		if (parent !== null) {
+			if (parent.first === effect) parent.first = next;
+			if (parent.last === effect) parent.last = prev;
+		}
+	}
+
+	/**
+	 * When a block effect is removed, we don't immediately destroy it or yank it
+	 * out of the DOM, because it might have transitions. Instead, we 'pause' it.
+	 * It stays around (in memory, and in the DOM) until outro transitions have
+	 * completed, and if the state change is reversed then we _resume_ it.
+	 * A paused effect does not update, and the DOM subtree becomes inert.
+	 * @param {Effect} effect
+	 * @param {() => void} [callback]
+	 */
+	function pause_effect(effect, callback) {
+		/** @type {TransitionManager[]} */
+		var transitions = [];
+
+		pause_children(effect, transitions, true);
+
+		run_out_transitions(transitions, () => {
+			destroy_effect(effect);
+			if (callback) callback();
+		});
+	}
+
+	/**
+	 * @param {TransitionManager[]} transitions
+	 * @param {() => void} fn
+	 */
+	function run_out_transitions(transitions, fn) {
+		var remaining = transitions.length;
+		if (remaining > 0) {
+			var check = () => --remaining || fn();
+			for (var transition of transitions) {
+				transition.out(check);
+			}
+		} else {
+			fn();
+		}
+	}
+
+	/**
+	 * @param {Effect} effect
+	 * @param {TransitionManager[]} transitions
+	 * @param {boolean} local
+	 */
+	function pause_children(effect, transitions, local) {
+		if ((effect.f & INERT) !== 0) return;
+		effect.f ^= INERT;
+
+		if (effect.transitions !== null) {
+			for (const transition of effect.transitions) {
+				if (transition.is_global || local) {
+					transitions.push(transition);
+				}
+			}
+		}
+
+		var child = effect.first;
+
+		while (child !== null) {
+			var sibling = child.next;
+			var transparent = (child.f & EFFECT_TRANSPARENT) !== 0 || (child.f & BRANCH_EFFECT) !== 0;
+			// TODO we don't need to call pause_children recursively with a linked list in place
+			// it's slightly more involved though as we have to account for `transparent` changing
+			// through the tree.
+			pause_children(child, transitions, transparent ? local : false);
+			child = sibling;
+		}
+	}
+
+	/** @import { ComponentContext, Derived, Effect, Reaction, Signal, Source, Value } from '#client' */
+	// Used for DEV time error handling
+	/** @param {WeakSet<Error>} value */
+	const handled_errors = new WeakSet();
+	let is_throwing_error = false;
+	// Used for handling scheduling
+	let is_micro_task_queued = false;
+
+	/** @type {Effect | null} */
+	let last_scheduled_effect = null;
+
+	let is_flushing_effect = false;
+
+	/** @param {boolean} value */
+	function set_is_flushing_effect(value) {
+		is_flushing_effect = value;
+	}
+
+	// Handle effect queues
+
+	/** @type {Effect[]} */
+	let queued_root_effects = [];
+
+	let flush_count = 0;
+	/** @type {Effect[]} Stack of effects, dev only */
+	let dev_effect_stack = [];
+	// Handle signal reactivity tree dependencies and reactions
+
+	/** @type {null | Reaction} */
+	let active_reaction = null;
+
+	/** @param {null | Reaction} reaction */
+	function set_active_reaction(reaction) {
+		active_reaction = reaction;
+	}
+
+	/** @type {null | Effect} */
+	let active_effect = null;
+
+	/** @param {null | Effect} effect */
+	function set_active_effect(effect) {
+		active_effect = effect;
+	}
+
+	/**
+	 * The dependencies of the reaction that is currently being executed. In many cases,
+	 * the dependencies are unchanged between runs, and so this will be `null` unless
+	 * and until a new dependency is accessed — we track this via `skipped_deps`
+	 * @type {null | Value[]}
+	 */
+	let new_deps = null;
+
+	let skipped_deps = 0;
+
+	/** @type {number} Used by sources and deriveds for handling updates to unowned deriveds it starts from 1 to differentiate between a created effect and a run one for tracing */
+	let current_version = 1;
+
+	// If we are working with a get() chain that has no active container,
+	// to prevent memory leaks, we skip adding the reaction.
+	let skip_reaction = false;
+
+	// Handling runtime component context
+	/** @type {ComponentContext | null} */
+	let component_context = null;
+
+	/**
+	 * The current component function. Different from current component context:
+	 * ```html
+	 * <!-- App.svelte -->
+	 * <Foo>
+	 *   <Bar /> <!-- context == Foo.svelte, function == App.svelte -->
+	 * </Foo>
+	 * ```
+	 * @type {ComponentContext['function']}
+	 */
+	let dev_current_component_function = null;
+
+	function increment_version() {
+		return ++current_version;
+	}
+
+	/**
+	 * Determines whether a derived or effect is dirty.
+	 * If it is MAYBE_DIRTY, will set the status to CLEAN
+	 * @param {Reaction} reaction
+	 * @returns {boolean}
+	 */
+	function check_dirtiness(reaction) {
+		var flags = reaction.f;
+
+		if ((flags & DIRTY) !== 0) {
+			return true;
+		}
+
+		if ((flags & MAYBE_DIRTY) !== 0) {
+			var dependencies = reaction.deps;
+			var is_unowned = (flags & UNOWNED) !== 0;
+
+			if (dependencies !== null) {
+				var i;
+				var dependency;
+				var is_disconnected = (flags & DISCONNECTED) !== 0;
+				var is_unowned_connected = is_unowned && active_effect !== null && !skip_reaction;
+				var length = dependencies.length;
+
+				// If we are working with a disconnected or an unowned signal that is now connected (due to an active effect)
+				// then we need to re-connect the reaction to the dependency
+				if (is_disconnected || is_unowned_connected) {
+					for (i = 0; i < length; i++) {
+						dependency = dependencies[i];
+
+						if (!dependency?.reactions?.includes(reaction)) {
+							(dependency.reactions ??= []).push(reaction);
+						}
+					}
+
+					if (is_disconnected) {
+						reaction.f ^= DISCONNECTED;
+					}
+				}
+
+				for (i = 0; i < length; i++) {
+					dependency = dependencies[i];
+
+					if (check_dirtiness(/** @type {Derived} */ (dependency))) {
+						update_derived(/** @type {Derived} */ (dependency));
+					}
+
+					if (dependency.version > reaction.version) {
+						return true;
+					}
+				}
+			}
+
+			// Unowned signals should never be marked as clean unless they
+			// are used within an active_effect without skip_reaction
+			if (!is_unowned || (active_effect !== null && !skip_reaction)) {
+				set_signal_status(reaction, CLEAN);
+			}
+		}
+
+		return false;
+	}
+
+	/**
+	 * @param {unknown} error
+	 * @param {Effect} effect
+	 */
+	function propagate_error(error, effect) {
+		/** @type {Effect | null} */
+		var current = effect;
+
+		while (current !== null) {
+			if ((current.f & BOUNDARY_EFFECT) !== 0) {
+				try {
+					// @ts-expect-error
+					current.fn(error);
+					return;
+				} catch {
+					// Remove boundary flag from effect
+					current.f ^= BOUNDARY_EFFECT;
+				}
+			}
+
+			current = current.parent;
+		}
+
+		is_throwing_error = false;
+		throw error;
+	}
+
+	/**
+	 * @param {Effect} effect
+	 */
+	function should_rethrow_error(effect) {
+		return (
+			(effect.f & DESTROYED) === 0 &&
+			(effect.parent === null || (effect.parent.f & BOUNDARY_EFFECT) === 0)
+		);
+	}
+
+	/**
+	 * @param {unknown} error
+	 * @param {Effect} effect
+	 * @param {Effect | null} previous_effect
+	 * @param {ComponentContext | null} component_context
+	 */
+	function handle_error(error, effect, previous_effect, component_context) {
+		if (is_throwing_error) {
+			if (previous_effect === null) {
+				is_throwing_error = false;
+			}
+
+			if (should_rethrow_error(effect)) {
+				throw error;
+			}
+
+			return;
+		}
+
+		if (previous_effect !== null) {
+			is_throwing_error = true;
+		}
+
+		if (
+			!DEV ||
+			component_context === null ||
+			!(error instanceof Error) ||
+			handled_errors.has(error)
+		) {
+			propagate_error(error, effect);
+			return;
+		}
+
+		handled_errors.add(error);
+
+		const component_stack = [];
+
+		const effect_name = effect.fn?.name;
+
+		if (effect_name) {
+			component_stack.push(effect_name);
+		}
+
+		/** @type {ComponentContext | null} */
+		let current_context = component_context;
+
+		while (current_context !== null) {
+			if (DEV) {
+				/** @type {string} */
+				var filename = current_context.function?.[FILENAME];
+
+				if (filename) {
+					const file = filename.split('/').pop();
+					component_stack.push(file);
+				}
+			}
+
+			current_context = current_context.p;
+		}
+
+		const indent = /Firefox/.test(navigator.userAgent) ? '  ' : '\t';
+		define_property(error, 'message', {
+			value: error.message + `\n${component_stack.map((name) => `\n${indent}in ${name}`).join('')}\n`
+		});
+		define_property(error, 'component_stack', {
+			value: component_stack
+		});
+
+		const stack = error.stack;
+
+		// Filter out internal files from callstack
+		if (stack) {
+			const lines = stack.split('\n');
+			const new_lines = [];
+			for (let i = 0; i < lines.length; i++) {
+				const line = lines[i];
+				if (line.includes('svelte/src/internal')) {
+					continue;
+				}
+				new_lines.push(line);
+			}
+			define_property(error, 'stack', {
+				value: new_lines.join('\n')
+			});
+		}
+
+		propagate_error(error, effect);
+
+		if (should_rethrow_error(effect)) {
+			throw error;
+		}
+	}
+
+	/**
+	 * @template V
+	 * @param {Reaction} reaction
+	 * @returns {V}
+	 */
+	function update_reaction(reaction) {
+		var previous_deps = new_deps;
+		var previous_skipped_deps = skipped_deps;
+		var previous_reaction = active_reaction;
+		var previous_skip_reaction = skip_reaction;
+		var previous_component_context = component_context;
+		var flags = reaction.f;
+
+		new_deps = /** @type {null | Value[]} */ (null);
+		skipped_deps = 0;
+		active_reaction = (flags & (BRANCH_EFFECT | ROOT_EFFECT)) === 0 ? reaction : null;
+		skip_reaction = !is_flushing_effect && (flags & UNOWNED) !== 0;
+		component_context = reaction.ctx;
+
+		try {
+			var result = /** @type {Function} */ (0, reaction.fn)();
+			var deps = reaction.deps;
+
+			if (new_deps !== null) {
+				var i;
+
+				remove_reactions(reaction, skipped_deps);
+
+				if (deps !== null && skipped_deps > 0) {
+					deps.length = skipped_deps + new_deps.length;
+					for (i = 0; i < new_deps.length; i++) {
+						deps[skipped_deps + i] = new_deps[i];
+					}
+				} else {
+					reaction.deps = deps = new_deps;
+				}
+
+				if (!skip_reaction) {
+					for (i = skipped_deps; i < deps.length; i++) {
+						(deps[i].reactions ??= []).push(reaction);
+					}
+				}
+			} else if (deps !== null && skipped_deps < deps.length) {
+				remove_reactions(reaction, skipped_deps);
+				deps.length = skipped_deps;
+			}
+
+			return result;
+		} finally {
+			new_deps = previous_deps;
+			skipped_deps = previous_skipped_deps;
+			active_reaction = previous_reaction;
+			skip_reaction = previous_skip_reaction;
+			component_context = previous_component_context;
+		}
+	}
+
+	/**
+	 * @template V
+	 * @param {Reaction} signal
+	 * @param {Value<V>} dependency
+	 * @returns {void}
+	 */
+	function remove_reaction(signal, dependency) {
+		let reactions = dependency.reactions;
+		if (reactions !== null) {
+			var index = reactions.indexOf(signal);
+			if (index !== -1) {
+				var new_length = reactions.length - 1;
+				if (new_length === 0) {
+					reactions = dependency.reactions = null;
+				} else {
+					// Swap with last element and then remove.
+					reactions[index] = reactions[new_length];
+					reactions.pop();
+				}
+			}
+		}
+		// If the derived has no reactions, then we can disconnect it from the graph,
+		// allowing it to either reconnect in the future, or be GC'd by the VM.
+		if (
+			reactions === null &&
+			(dependency.f & DERIVED) !== 0 &&
+			// Destroying a child effect while updating a parent effect can cause a dependency to appear
+			// to be unused, when in fact it is used by the currently-updating parent. Checking `new_deps`
+			// allows us to skip the expensive work of disconnecting and immediately reconnecting it
+			(new_deps === null || !new_deps.includes(dependency))
+		) {
+			set_signal_status(dependency, MAYBE_DIRTY);
+			// If we are working with a derived that is owned by an effect, then mark it as being
+			// disconnected.
+			if ((dependency.f & (UNOWNED | DISCONNECTED)) === 0) {
+				dependency.f ^= DISCONNECTED;
+			}
+			remove_reactions(/** @type {Derived} **/ (dependency), 0);
+		}
+	}
+
+	/**
+	 * @param {Reaction} signal
+	 * @param {number} start_index
+	 * @returns {void}
+	 */
+	function remove_reactions(signal, start_index) {
+		var dependencies = signal.deps;
+		if (dependencies === null) return;
+
+		for (var i = start_index; i < dependencies.length; i++) {
+			remove_reaction(signal, dependencies[i]);
+		}
+	}
+
+	/**
+	 * @param {Effect} effect
+	 * @returns {void}
+	 */
+	function update_effect(effect) {
+		var flags = effect.f;
+
+		if ((flags & DESTROYED) !== 0) {
+			return;
+		}
+
+		set_signal_status(effect, CLEAN);
+
+		var previous_effect = active_effect;
+		var previous_component_context = component_context;
+
+		active_effect = effect;
+
+		if (DEV) {
+			var previous_component_fn = dev_current_component_function;
+			dev_current_component_function = effect.component_function;
+		}
+
+		try {
+			if ((flags & BLOCK_EFFECT) !== 0) {
+				destroy_block_effect_children(effect);
+			} else {
+				destroy_effect_children(effect);
+			}
+			destroy_effect_deriveds(effect);
+
+			execute_effect_teardown(effect);
+			var teardown = update_reaction(effect);
+			effect.teardown = typeof teardown === 'function' ? teardown : null;
+			effect.version = current_version;
+
+			if (DEV) {
+				dev_effect_stack.push(effect);
+			}
+		} catch (error) {
+			handle_error(error, effect, previous_effect, previous_component_context || effect.ctx);
+		} finally {
+			active_effect = previous_effect;
+
+			if (DEV) {
+				dev_current_component_function = previous_component_fn;
+			}
+		}
+	}
+
+	function log_effect_stack() {
+		// eslint-disable-next-line no-console
+		console.error(
+			'Last ten effects were: ',
+			dev_effect_stack.slice(-10).map((d) => d.fn)
+		);
+		dev_effect_stack = [];
+	}
+
+	function infinite_loop_guard() {
+		if (flush_count > 1000) {
+			flush_count = 0;
+			try {
+				effect_update_depth_exceeded();
+			} catch (error) {
+				if (DEV) {
+					// stack is garbage, ignore. Instead add a console.error message.
+					define_property(error, 'stack', {
+						value: ''
+					});
+				}
+				// Try and handle the error so it can be caught at a boundary, that's
+				// if there's an effect available from when it was last scheduled
+				if (last_scheduled_effect !== null) {
+					if (DEV) {
+						try {
+							handle_error(error, last_scheduled_effect, null, null);
+						} catch (e) {
+							// Only log the effect stack if the error is re-thrown
+							log_effect_stack();
+							throw e;
+						}
+					} else {
+						handle_error(error, last_scheduled_effect, null, null);
+					}
+				} else {
+					if (DEV) {
+						log_effect_stack();
+					}
+					throw error;
+				}
+			}
+		}
+		flush_count++;
+	}
+
+	/**
+	 * @param {Array<Effect>} root_effects
+	 * @returns {void}
+	 */
+	function flush_queued_root_effects(root_effects) {
+		var length = root_effects.length;
+		if (length === 0) {
+			return;
+		}
+		infinite_loop_guard();
+
+		var previously_flushing_effect = is_flushing_effect;
+		is_flushing_effect = true;
+
+		try {
+			for (var i = 0; i < length; i++) {
+				var effect = root_effects[i];
+
+				if ((effect.f & CLEAN) === 0) {
+					effect.f ^= CLEAN;
+				}
+
+				/** @type {Effect[]} */
+				var collected_effects = [];
+
+				process_effects(effect, collected_effects);
+				flush_queued_effects(collected_effects);
+			}
+		} finally {
+			is_flushing_effect = previously_flushing_effect;
+		}
+	}
+
+	/**
+	 * @param {Array<Effect>} effects
+	 * @returns {void}
+	 */
+	function flush_queued_effects(effects) {
+		var length = effects.length;
+		if (length === 0) return;
+
+		for (var i = 0; i < length; i++) {
+			var effect = effects[i];
+
+			if ((effect.f & (DESTROYED | INERT)) === 0) {
+				try {
+					if (check_dirtiness(effect)) {
+						update_effect(effect);
+
+						// Effects with no dependencies or teardown do not get added to the effect tree.
+						// Deferred effects (e.g. `$effect(...)`) _are_ added to the tree because we
+						// don't know if we need to keep them until they are executed. Doing the check
+						// here (rather than in `update_effect`) allows us to skip the work for
+						// immediate effects.
+						if (effect.deps === null && effect.first === null && effect.nodes_start === null) {
+							if (effect.teardown === null) {
+								// remove this effect from the graph
+								unlink_effect(effect);
+							} else {
+								// keep the effect in the graph, but free up some memory
+								effect.fn = null;
+							}
+						}
+					}
+				} catch (error) {
+					handle_error(error, effect, null, effect.ctx);
+				}
+			}
+		}
+	}
+
+	function process_deferred() {
+		is_micro_task_queued = false;
+		if (flush_count > 1001) {
+			return;
+		}
+		const previous_queued_root_effects = queued_root_effects;
+		queued_root_effects = [];
+		flush_queued_root_effects(previous_queued_root_effects);
+
+		if (!is_micro_task_queued) {
+			flush_count = 0;
+			last_scheduled_effect = null;
+			if (DEV) {
+				dev_effect_stack = [];
+			}
+		}
+	}
+
+	/**
+	 * @param {Effect} signal
+	 * @returns {void}
+	 */
+	function schedule_effect(signal) {
+		{
+			if (!is_micro_task_queued) {
+				is_micro_task_queued = true;
+				queueMicrotask(process_deferred);
+			}
+		}
+
+		last_scheduled_effect = signal;
+
+		var effect = signal;
+
+		while (effect.parent !== null) {
+			effect = effect.parent;
+			var flags = effect.f;
+
+			if ((flags & (ROOT_EFFECT | BRANCH_EFFECT)) !== 0) {
+				if ((flags & CLEAN) === 0) return;
+				effect.f ^= CLEAN;
+			}
+		}
+
+		queued_root_effects.push(effect);
+	}
+
+	/**
+	 *
+	 * This function both runs render effects and collects user effects in topological order
+	 * from the starting effect passed in. Effects will be collected when they match the filtered
+	 * bitwise flag passed in only. The collected effects array will be populated with all the user
+	 * effects to be flushed.
+	 *
+	 * @param {Effect} effect
+	 * @param {Effect[]} collected_effects
+	 * @returns {void}
+	 */
+	function process_effects(effect, collected_effects) {
+		var current_effect = effect.first;
+		var effects = [];
+
+		main_loop: while (current_effect !== null) {
+			var flags = current_effect.f;
+			var is_branch = (flags & BRANCH_EFFECT) !== 0;
+			var is_skippable_branch = is_branch && (flags & CLEAN) !== 0;
+			var sibling = current_effect.next;
+
+			if (!is_skippable_branch && (flags & INERT) === 0) {
+				if ((flags & RENDER_EFFECT) !== 0) {
+					if (is_branch) {
+						current_effect.f ^= CLEAN;
+					} else {
+						try {
+							if (check_dirtiness(current_effect)) {
+								update_effect(current_effect);
+							}
+						} catch (error) {
+							handle_error(error, current_effect, null, current_effect.ctx);
+						}
+					}
+
+					var child = current_effect.first;
+
+					if (child !== null) {
+						current_effect = child;
+						continue;
+					}
+				} else if ((flags & EFFECT) !== 0) {
+					effects.push(current_effect);
+				}
+			}
+
+			if (sibling === null) {
+				let parent = current_effect.parent;
+
+				while (parent !== null) {
+					if (effect === parent) {
+						break main_loop;
+					}
+					var parent_sibling = parent.next;
+					if (parent_sibling !== null) {
+						current_effect = parent_sibling;
+						continue main_loop;
+					}
+					parent = parent.parent;
+				}
+			}
+
+			current_effect = sibling;
+		}
+
+		// We might be dealing with many effects here, far more than can be spread into
+		// an array push call (callstack overflow). So let's deal with each effect in a loop.
+		for (var i = 0; i < effects.length; i++) {
+			child = effects[i];
+			collected_effects.push(child);
+			process_effects(child, collected_effects);
+		}
+	}
+
+	const STATUS_MASK = ~(DIRTY | MAYBE_DIRTY | CLEAN);
+
+	/**
+	 * @param {Signal} signal
+	 * @param {number} status
+	 * @returns {void}
+	 */
+	function set_signal_status(signal, status) {
+		signal.f = (signal.f & STATUS_MASK) | status;
+	}
+
+	/**
+	 * @param {Record<string, unknown>} props
+	 * @param {any} runes
+	 * @param {Function} [fn]
+	 * @returns {void}
+	 */
+	function push(props, runes = false, fn) {
+		component_context = {
+			p: component_context,
+			c: null,
+			e: null,
+			m: false,
+			s: props,
+			x: null,
+			l: null
+		};
+
+		if (legacy_mode_flag && !runes) {
+			component_context.l = {
+				s: null,
+				u: null,
+				r1: [],
+				r2: source(false)
+			};
+		}
+
+		if (DEV) {
+			// component function
+			component_context.function = fn;
+			dev_current_component_function = fn;
+		}
+	}
+
+	/**
+	 * @template {Record<string, any>} T
+	 * @param {T} [component]
+	 * @returns {T}
+	 */
+	function pop(component) {
+		const context_stack_item = component_context;
+		if (context_stack_item !== null) {
+			if (component !== undefined) {
+				context_stack_item.x = component;
+			}
+			const component_effects = context_stack_item.e;
+			if (component_effects !== null) {
+				var previous_effect = active_effect;
+				var previous_reaction = active_reaction;
+				context_stack_item.e = null;
+				try {
+					for (var i = 0; i < component_effects.length; i++) {
+						var component_effect = component_effects[i];
+						set_active_effect(component_effect.effect);
+						set_active_reaction(component_effect.reaction);
+						effect(component_effect.fn);
+					}
+				} finally {
+					set_active_effect(previous_effect);
+					set_active_reaction(previous_reaction);
+				}
+			}
+			component_context = context_stack_item.p;
+			if (DEV) {
+				dev_current_component_function = context_stack_item.p?.function ?? null;
+			}
+			context_stack_item.m = true;
+		}
+		// Micro-optimization: Don't set .a above to the empty object
+		// so it can be garbage-collected when the return here is unused
+		return component || /** @type {T} */ ({});
+	}
+
+	if (DEV) {
+		/**
+		 * @param {string} rune
+		 */
+		function throw_rune_error(rune) {
+			if (!(rune in globalThis)) {
+				// TODO if people start adjusting the "this can contain runes" config through v-p-s more, adjust this message
+				/** @type {any} */
+				let value; // let's hope noone modifies this global, but belts and braces
+				Object.defineProperty(globalThis, rune, {
+					configurable: true,
+					// eslint-disable-next-line getter-return
+					get: () => {
+						if (value !== undefined) {
+							return value;
+						}
+
+						rune_outside_svelte(rune);
+					},
+					set: (v) => {
+						value = v;
+					}
+				});
+			}
+		}
+
+		throw_rune_error('$state');
+		throw_rune_error('$effect');
+		throw_rune_error('$derived');
+		throw_rune_error('$inspect');
+		throw_rune_error('$props');
+		throw_rune_error('$bindable');
+	}
+
+	/** @import { SourceLocation } from '#shared' */
+
+	/**
+	 * @param {any} fn
+	 * @param {string} filename
+	 * @param {SourceLocation[]} locations
+	 * @returns {any}
+	 */
+	function add_locations(fn, filename, locations) {
+		return (/** @type {any[]} */ ...args) => {
+			const dom = fn(...args);
+
+			var node = dom.nodeType === 11 ? dom.firstChild : dom;
+			assign_locations(node, filename, locations);
+
+			return dom;
+		};
+	}
+
+	/**
+	 * @param {Element} element
+	 * @param {string} filename
+	 * @param {SourceLocation} location
+	 */
+	function assign_location(element, filename, location) {
+		// @ts-expect-error
+		element.__svelte_meta = {
+			loc: { file: filename, line: location[0], column: location[1] }
+		};
+
+		if (location[2]) {
+			assign_locations(element.firstChild, filename, location[2]);
+		}
+	}
+
+	/**
+	 * @param {Node | null} node
+	 * @param {string} filename
+	 * @param {SourceLocation[]} locations
+	 */
+	function assign_locations(node, filename, locations) {
+		var i = 0;
+
+		while (node && i < locations.length) {
+
+			if (node.nodeType === 1) {
+				assign_location(/** @type {Element} */ (node), filename, locations[i++]);
+			}
+
+			node = node.nextSibling;
+		}
+	}
+
+	/** @import { Location } from 'locate-character' */
+
+	/** @type {Set<string>} */
+	const all_registered_events = new Set();
+
+	/** @type {Set<(events: Array<string>) => void>} */
+	const root_event_handles = new Set();
+
+	/**
+	 * @this {EventTarget}
+	 * @param {Event} event
+	 * @returns {void}
+	 */
+	function handle_event_propagation(event) {
+		var handler_element = this;
+		var owner_document = /** @type {Node} */ (handler_element).ownerDocument;
+		var event_name = event.type;
+		var path = event.composedPath?.() || [];
+		var current_target = /** @type {null | Element} */ (path[0] || event.target);
+
+		// composedPath contains list of nodes the event has propagated through.
+		// We check __root to skip all nodes below it in case this is a
+		// parent of the __root node, which indicates that there's nested
+		// mounted apps. In this case we don't want to trigger events multiple times.
+		var path_idx = 0;
+
+		// @ts-expect-error is added below
+		var handled_at = event.__root;
+
+		if (handled_at) {
+			var at_idx = path.indexOf(handled_at);
+			if (
+				at_idx !== -1 &&
+				(handler_element === document || handler_element === /** @type {any} */ (window))
+			) {
+				// This is the fallback document listener or a window listener, but the event was already handled
+				// -> ignore, but set handle_at to document/window so that we're resetting the event
+				// chain in case someone manually dispatches the same event object again.
+				// @ts-expect-error
+				event.__root = handler_element;
+				return;
+			}
+
+			// We're deliberately not skipping if the index is higher, because
+			// someone could create an event programmatically and emit it multiple times,
+			// in which case we want to handle the whole propagation chain properly each time.
+			// (this will only be a false negative if the event is dispatched multiple times and
+			// the fallback document listener isn't reached in between, but that's super rare)
+			var handler_idx = path.indexOf(handler_element);
+			if (handler_idx === -1) {
+				// handle_idx can theoretically be -1 (happened in some JSDOM testing scenarios with an event listener on the window object)
+				// so guard against that, too, and assume that everything was handled at this point.
+				return;
+			}
+
+			if (at_idx <= handler_idx) {
+				path_idx = at_idx;
+			}
+		}
+
+		current_target = /** @type {Element} */ (path[path_idx] || event.target);
+		// there can only be one delegated event per element, and we either already handled the current target,
+		// or this is the very first target in the chain which has a non-delegated listener, in which case it's safe
+		// to handle a possible delegated event on it later (through the root delegation listener for example).
+		if (current_target === handler_element) return;
+
+		// Proxy currentTarget to correct target
+		define_property(event, 'currentTarget', {
+			configurable: true,
+			get() {
+				return current_target || owner_document;
+			}
+		});
+
+		// This started because of Chromium issue https://chromestatus.com/feature/5128696823545856,
+		// where removal or moving of of the DOM can cause sync `blur` events to fire, which can cause logic
+		// to run inside the current `active_reaction`, which isn't what we want at all. However, on reflection,
+		// it's probably best that all event handled by Svelte have this behaviour, as we don't really want
+		// an event handler to run in the context of another reaction or effect.
+		var previous_reaction = active_reaction;
+		var previous_effect = active_effect;
+		set_active_reaction(null);
+		set_active_effect(null);
+
+		try {
+			/**
+			 * @type {unknown}
+			 */
+			var throw_error;
+			/**
+			 * @type {unknown[]}
+			 */
+			var other_errors = [];
+
+			while (current_target !== null) {
+				/** @type {null | Element} */
+				var parent_element =
+					current_target.assignedSlot ||
+					current_target.parentNode ||
+					/** @type {any} */ (current_target).host ||
+					null;
+
+				try {
+					// @ts-expect-error
+					var delegated = current_target['__' + event_name];
+
+					if (delegated !== undefined && !(/** @type {any} */ (current_target).disabled)) {
+						if (is_array(delegated)) {
+							var [fn, ...data] = delegated;
+							fn.apply(current_target, [event, ...data]);
+						} else {
+							delegated.call(current_target, event);
+						}
+					}
+				} catch (error) {
+					if (throw_error) {
+						other_errors.push(error);
+					} else {
+						throw_error = error;
+					}
+				}
+				if (event.cancelBubble || parent_element === handler_element || parent_element === null) {
+					break;
+				}
+				current_target = parent_element;
+			}
+
+			if (throw_error) {
+				for (let error of other_errors) {
+					// Throw the rest of the errors, one-by-one on a microtask
+					queueMicrotask(() => {
+						throw error;
+					});
+				}
+				throw throw_error;
+			}
+		} finally {
+			// @ts-expect-error is used above
+			event.__root = handler_element;
+			// @ts-ignore remove proxy on currentTarget
+			delete event.currentTarget;
+			set_active_reaction(previous_reaction);
+			set_active_effect(previous_effect);
+		}
+	}
+
+	/** @param {string} html */
+	function create_fragment_from_html(html) {
+		var elem = document.createElement('template');
+		elem.innerHTML = html;
+		return elem.content;
+	}
+
+	/** @import { Effect, TemplateNode } from '#client' */
+
+	/**
+	 * @param {TemplateNode} start
+	 * @param {TemplateNode | null} end
+	 */
+	function assign_nodes(start, end) {
+		var effect = /** @type {Effect} */ (active_effect);
+		if (effect.nodes_start === null) {
+			effect.nodes_start = start;
+			effect.nodes_end = end;
+		}
+	}
+
+	/**
+	 * @param {string} content
+	 * @param {number} flags
+	 * @returns {() => Node | Node[]}
+	 */
+	/*#__NO_SIDE_EFFECTS__*/
+	function template(content, flags) {
+		var is_fragment = (flags & TEMPLATE_FRAGMENT) !== 0;
+		var use_import_node = (flags & TEMPLATE_USE_IMPORT_NODE) !== 0;
+
+		/** @type {Node} */
+		var node;
+
+		/**
+		 * Whether or not the first item is a text/element node. If not, we need to
+		 * create an additional comment node to act as `effect.nodes.start`
+		 */
+		var has_start = !content.startsWith('<!>');
+
+		return () => {
+
+			if (node === undefined) {
+				node = create_fragment_from_html(has_start ? content : '<!>' + content);
+				if (!is_fragment) node = /** @type {Node} */ (get_first_child(node));
+			}
+
+			var clone = /** @type {TemplateNode} */ (
+				use_import_node ? document.importNode(node, true) : node.cloneNode(true)
+			);
+
+			if (is_fragment) {
+				var start = /** @type {TemplateNode} */ (get_first_child(clone));
+				var end = /** @type {TemplateNode} */ (clone.lastChild);
+
+				assign_nodes(start, end);
+			} else {
+				assign_nodes(clone, clone);
+			}
+
+			return clone;
+		};
+	}
+
+	/**
+	 * Assign the created (or in hydration mode, traversed) dom elements to the current block
+	 * and insert the elements into the dom (in client mode).
+	 * @param {Text | Comment | Element} anchor
+	 * @param {DocumentFragment | Element} dom
+	 */
+	function append(anchor, dom) {
+
+		if (anchor === null) {
+			// edge case — void `<svelte:element>` with content
+			return;
+		}
+
+		anchor.before(/** @type {Node} */ (dom));
+	}
+
+	/** @import { ComponentContext, Effect, TemplateNode } from '#client' */
+	/** @import { Component, ComponentType, SvelteComponent, MountOptions } from '../../index.js' */
+
+	/**
+	 * Mounts a component to the given target and returns the exports and potentially the props (if compiled with `accessors: true`) of the component.
+	 * Transitions will play during the initial render unless the `intro` option is set to `false`.
+	 *
+	 * @template {Record<string, any>} Props
+	 * @template {Record<string, any>} Exports
+	 * @param {ComponentType<SvelteComponent<Props>> | Component<Props, Exports, any>} component
+	 * @param {MountOptions<Props>} options
+	 * @returns {Exports}
+	 */
+	function mount(component, options) {
+		return _mount(component, options);
+	}
+
+	/** @type {Map<string, number>} */
+	const document_listeners = new Map();
+
+	/**
+	 * @template {Record<string, any>} Exports
+	 * @param {ComponentType<SvelteComponent<any>> | Component<any>} Component
+	 * @param {MountOptions} options
+	 * @returns {Exports}
+	 */
+	function _mount(Component, { target, anchor, props = {}, events, context, intro = true }) {
+		init_operations();
+
+		var registered_events = new Set();
+
+		/** @param {Array<string>} events */
+		var event_handle = (events) => {
+			for (var i = 0; i < events.length; i++) {
+				var event_name = events[i];
+
+				if (registered_events.has(event_name)) continue;
+				registered_events.add(event_name);
+
+				var passive = is_passive_event(event_name);
+
+				// Add the event listener to both the container and the document.
+				// The container listener ensures we catch events from within in case
+				// the outer content stops propagation of the event.
+				target.addEventListener(event_name, handle_event_propagation, { passive });
+
+				var n = document_listeners.get(event_name);
+
+				if (n === undefined) {
+					// The document listener ensures we catch events that originate from elements that were
+					// manually moved outside of the container (e.g. via manual portals).
+					document.addEventListener(event_name, handle_event_propagation, { passive });
+					document_listeners.set(event_name, 1);
+				} else {
+					document_listeners.set(event_name, n + 1);
+				}
+			}
+		};
+
+		event_handle(array_from(all_registered_events));
+		root_event_handles.add(event_handle);
+
+		/** @type {Exports} */
+		// @ts-expect-error will be defined because the render effect runs synchronously
+		var component = undefined;
+
+		var unmount = component_root(() => {
+			var anchor_node = anchor ?? target.appendChild(create_text());
+
+			branch(() => {
+				if (context) {
+					push({});
+					var ctx = /** @type {ComponentContext} */ (component_context);
+					ctx.c = context;
+				}
+
+				if (events) {
+					// We can't spread the object or else we'd lose the state proxy stuff, if it is one
+					/** @type {any} */ (props).$$events = events;
+				}
+				// @ts-expect-error the public typings are not what the actual function looks like
+				component = Component(anchor_node, props) || {};
+
+				if (context) {
+					pop();
+				}
+			});
+
+			return () => {
+				for (var event_name of registered_events) {
+					target.removeEventListener(event_name, handle_event_propagation);
+
+					var n = /** @type {number} */ (document_listeners.get(event_name));
+
+					if (--n === 0) {
+						document.removeEventListener(event_name, handle_event_propagation);
+						document_listeners.delete(event_name);
+					} else {
+						document_listeners.set(event_name, n);
+					}
+				}
+
+				root_event_handles.delete(event_handle);
+
+				if (anchor_node !== anchor) {
+					anchor_node.parentNode?.removeChild(anchor_node);
+				}
+			};
+		});
+
+		mounted_components.set(component, unmount);
+		return component;
+	}
+
+	/**
+	 * References of the components that were mounted or hydrated.
+	 * Uses a `WeakMap` to avoid memory leaks.
+	 */
+	let mounted_components = new WeakMap();
+
+	/** @param {Function & { [FILENAME]: string }} target */
+	function check_target(target) {
+		if (target) {
+			component_api_invalid_new(target[FILENAME] ?? 'a component', target.name);
+		}
+	}
+
+	function legacy_api() {
+		const component = component_context?.function;
+
+		/** @param {string} method */
+		function error(method) {
+			// @ts-expect-error
+			const parent = get_component()?.[FILENAME] ?? 'Something';
+			component_api_changed(parent, method, component[FILENAME]);
+		}
+
+		return {
+			$destroy: () => error('$destroy()'),
+			$on: () => error('$on(...)'),
+			$set: () => error('$set(...)')
+		};
+	}
+
+	mark_module_start();
+	App[FILENAME] = "src/App.svelte";
+
+	var root = add_locations(template(`<h1>New Project!</h1>`), App[FILENAME], [[1, 0]]);
+
+	function App($$anchor, $$props) {
+		check_target(new.target);
+		push($$props, false, App);
+
+		var h1 = root();
+
+		append($$anchor, h1);
+		return pop({ ...legacy_api() });
+	}
+
+	mark_module_end(App);
+
+	const app = mount(App, {
+		target: document.body,
+	});
+
+	return app;
 
 })();
 //# sourceMappingURL=bundle.js.map
